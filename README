@@ -1,0 +1,12 @@
+WPlatform-Contract
+
+The platform contract for service of digital willing
+
+The platform is for working with users, creating and applying e-wills.
+Provides the main bussiness-logic.
+
+It's an ethereum smart-contract.
+Communicates with the WPlatform via rpc.
+
+(c) Eugene Valeyev
+
