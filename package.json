@@ -1,0 +1,19 @@
+{
+  "name": "w-platform-contract",
+  "private": true,
+  "version": "0.0.1",
+  "description": "The smart-contract for the Platform for the service of digital willing",
+  "keywords": [],
+  "dependencies": {
+    "zeppelin-solidity": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "main": "",
+  "repository": {
+    "type": "git",
+    "url": "git@bitbucket.org:my-will/wplatform-contract.git"
+  },
+  "author": "Eugene Valeyev",
+  "license": "exclusive"
+}
