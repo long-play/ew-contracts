@@ -16,6 +16,7 @@ contract WPlatform is Ownable {
     WillState   state;
     uint        createdAt;
     uint        activatedAt;
+    uint        validTill;
     address     provider;
   }
 
@@ -49,6 +50,11 @@ contract WPlatform is Ownable {
     _;
   }
 
+  modifier sufficientAmount(address provider) {
+    require(msg.value >= toWeis(annualPlatformFee + annualProviderFee[provider]) * 12 / 10);
+    _;
+  }
+
   // Constructor
   function WPlatform() {
   }
@@ -62,13 +68,21 @@ contract WPlatform is Ownable {
     weiRate = _rate;
   }
 
-  // Will
-  function createWill(uint256 _storageId, uint256 _willId, address _provider) payable {
-    require(wills[_willId].state == WillState.None);
-    require(msg.value >= (annualPlatformFee + annualProviderFee[_provider] * 12 / 10) * weiRate);
+  // Utils
+  function toWeis(uint256 _dollars) constant returns (uint256 weis) {
+    return _dollars * weiRate;
+  }
 
-    uint256 balance = msg.value - annualPlatformFee * weiRate;
-    platformFund += annualPlatformFee * weiRate;
+  function toDollars(uint256 _weis) constant returns (uint256 dollars) {
+    return _weis / weiRate;
+  }
+
+  // Will
+  function createWill(uint256 _storageId, uint256 _willId, address _provider) sufficientAmount(_provider) payable {
+    require(wills[_willId].state == WillState.None);
+
+    uint256 balance = msg.value - toWeis(annualPlatformFee);
+    platformFund += toWeis(annualPlatformFee);
 
     wills[_willId] = Will({
       willId: _willId,
@@ -79,6 +93,7 @@ contract WPlatform is Ownable {
       state: WillState.Created,
       createdAt: now,
       activatedAt: 0,
+      validTill: 0,
       provider: _provider
     });
     userWills[msg.sender].push(_willId);
@@ -92,8 +107,9 @@ contract WPlatform is Ownable {
 
     will.state = WillState.Activated;
     will.activatedAt = now;
+    will.validTill = now + 1 years;
 
-    uint256 initialFee = will.annualFee / 10;
+    uint256 initialFee = toWeis(will.annualFee) / 10;
     will.balance -= initialFee;
     providerBalance[msg.sender] += initialFee;
 
