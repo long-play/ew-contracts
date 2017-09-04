@@ -23,6 +23,9 @@ contract WPlatform is Ownable {
   // Events
   event WillCreated(uint256 willId, address owner, address provider);
   event WillStateUpdated(uint256 willId, address owner, WillState newState);
+  event WillRefreshed(uint256 willId, address owner);
+  event WillProlonged(uint256 willId, address owner, uint validTill);
+  event BalanceWithdrawn(address provider, uint256 amount);
 
   // State Variables
   string public name = 'WPlatform';
@@ -50,8 +53,8 @@ contract WPlatform is Ownable {
     _;
   }
 
-  modifier sufficientAmount(address provider) {
-    require(msg.value >= toWeis(annualPlatformFee + annualProviderFee[provider]) * 12 / 10);
+  modifier sufficientAmount(uint256 _annualFee) {
+    require(msg.value >= toWeis(annualPlatformFee) + toWeis(_annualFee) * 12 / 10);
     _;
   }
 
@@ -78,7 +81,7 @@ contract WPlatform is Ownable {
   }
 
   // Will
-  function createWill(uint256 _storageId, uint256 _willId, address _provider) sufficientAmount(_provider) payable {
+  function createWill(uint256 _storageId, uint256 _willId, address _provider) sufficientAmount(annualProviderFee[_provider]) payable {
     require(wills[_willId].state == WillState.None);
 
     uint256 balance = msg.value - toWeis(annualPlatformFee);
@@ -99,6 +102,7 @@ contract WPlatform is Ownable {
     userWills[msg.sender].push(_willId);
 
     WillCreated(_willId, msg.sender, _provider);
+    WillStateUpdated(_willId, msg.sender, WillState.Created);
   }
 
   function activateWill(uint256 _willId) onlyProvider(_willId) {
@@ -114,5 +118,38 @@ contract WPlatform is Ownable {
     providerBalance[msg.sender] += initialFee;
 
     WillStateUpdated(will.willId, will.owner, will.state);
+  }
+
+  function refreshWill(uint256 _willId) onlyProvider(_willId) {
+    Will storage will = wills[_willId];
+    require(will.state == WillState.Activated);
+
+    uint256 monthlyFee = toWeis(will.annualFee) / 12; //todo: make a custom time period
+    will.balance -= monthlyFee;
+    providerBalance[msg.sender] += monthlyFee;
+
+    WillRefreshed(will.willId, will.owner);
+  }
+
+  function prolongWill(uint256 _willId) sufficientAmount(wills[_willId].annualFee) payable {
+    Will storage will = wills[_willId];
+    require(will.state == WillState.Activated);
+
+    uint256 balance = msg.value - toWeis(annualPlatformFee);
+    platformFund += toWeis(annualPlatformFee);
+
+    will.validTill += 1 years;
+    will.balance += balance;
+
+    WillProlonged(will.willId, will.owner, will.validTill);
+  }
+
+  function withdraw(uint256 _amount) {
+    require(_amount <= providerBalance[msg.sender]);
+
+    providerBalance[msg.sender] -= _amount;
+    msg.sender.transfer(_amount);
+
+    BalanceWithdrawn(msg.sender, _amount);
   }
 }
