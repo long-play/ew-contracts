@@ -5,18 +5,19 @@ import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 contract WPlatform is Ownable {
   // Custom Types
-  enum WillState { None, Created, Activated, Claimed, Declined }
+  enum WillState { None, Created, Activated, Pending, Claimed, Declined }
 
   struct Will {
     uint256     willId;
     uint256     storageId;
     uint256     balance;
     uint256     annualFee;
+    uint256     beneficiaryHash;
+    uint256     decryptionKey;
     address     owner;
     WillState   state;
-    uint        createdAt;
-    uint        activatedAt;
-    uint        validTill;
+    uint256     updatedAt;
+    uint256     validTill;
     address     provider;
   }
 
@@ -31,7 +32,7 @@ contract WPlatform is Ownable {
   string public name = 'WPlatform';
 
   uint256 public annualPlatformFee; // annual platform fee in dollars
-  uint256 public weiRate;           // excchange rate weis per dollar
+  uint256 public weiRate;           // exchange rate weis per dollar
   mapping (address => uint256) public annualProviderFee;   // annual provider fee in dollars
 
   uint256 public platformFund;      // platform's balance in wei
@@ -59,7 +60,9 @@ contract WPlatform is Ownable {
   }
 
   // Constructor
-  function WPlatform() {
+  function WPlatform(uint256 _annualFee, uint256 _ethRate) {
+    annualPlatformFee = _annualFee;
+    weiRate = _ethRate;
   }
 
   // Configuration
@@ -71,18 +74,23 @@ contract WPlatform is Ownable {
     weiRate = _rate;
   }
 
+  function setAnnaulProviderFee(uint256 _fee) {
+    annualProviderFee[msg.sender] = _fee;
+  }
+
   // Utils
-  function toWeis(uint256 _dollars) constant returns (uint256 weis) {
+  function toWeis(uint256 _dollars) internal constant returns (uint256 weis) {
     return _dollars * weiRate;
   }
 
-  function toDollars(uint256 _weis) constant returns (uint256 dollars) {
+  function toDollars(uint256 _weis) internal constant returns (uint256 dollars) {
     return _weis / weiRate;
   }
 
   // Will
-  function createWill(uint256 _storageId, uint256 _willId, address _provider) sufficientAmount(annualProviderFee[_provider]) payable {
+  function createWill(uint256 _willId, uint256 _storageId, address _provider) sufficientAmount(annualProviderFee[_provider]) payable {
     require(wills[_willId].state == WillState.None);
+    require(address(_willId >> 96) == _provider);
 
     uint256 balance = msg.value - toWeis(annualPlatformFee);
     platformFund += toWeis(annualPlatformFee);
@@ -94,8 +102,9 @@ contract WPlatform is Ownable {
       annualFee: annualProviderFee[_provider],
       owner: msg.sender,
       state: WillState.Created,
-      createdAt: now,
-      activatedAt: 0,
+      beneficiaryHash: 0,
+      decryptionKey: 0,
+      updatedAt: now,
       validTill: 0,
       provider: _provider
     });
@@ -110,7 +119,7 @@ contract WPlatform is Ownable {
     require(will.state == WillState.Created);
 
     will.state = WillState.Activated;
-    will.activatedAt = now;
+    will.updatedAt = now;
     will.validTill = now + 1 years;
 
     uint256 initialFee = toWeis(will.annualFee) / 10;
@@ -142,6 +151,39 @@ contract WPlatform is Ownable {
     will.balance += balance;
 
     WillProlonged(will.willId, will.owner, will.validTill);
+  }
+
+  function applyWill(uint256 _willId, uint256 _decryptionKey) onlyProvider(_willId) {
+    Will storage will = wills[_willId];
+    require(will.state == WillState.Activated);
+
+    will.decryptionKey = _decryptionKey;
+    will.state = WillState.Pending;
+    will.updatedAt = now;
+
+    WillStateUpdated(will.willId, will.owner, will.state);
+  }
+
+  function claimWill(uint256 _willId) {
+    Will storage will = wills[_willId];
+    require(will.state == WillState.Pending);
+    require(uint256(sha3(msg.sender)) == will.beneficiaryHash);
+
+    will.state = WillState.Claimed;
+    will.updatedAt = now;
+
+    WillStateUpdated(will.willId, will.owner, will.state);
+  }
+
+  function declineWill(uint256 _willId) onlyProvider(_willId) {
+    Will storage will = wills[_willId];
+    require(will.state == WillState.Activated);
+    require(will.validTill < now);
+
+    will.state = WillState.Declined;
+    will.updatedAt = now;
+
+    WillStateUpdated(will.willId, will.owner, will.state);
   }
 
   function withdraw(uint256 _amount) {
