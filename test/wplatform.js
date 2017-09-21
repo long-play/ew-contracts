@@ -1,4 +1,6 @@
-var WPlatform = artifacts.require("WPlatform");
+const WPlatform = artifacts.require("WPlatform");
+const keccak256 = require('js-sha3').keccak256;
+const BN = require('bn.js');
 
 //todo: move to separate utils file
 //const TestUtils = require('./TestUtils.js');
@@ -19,14 +21,17 @@ contract('WPlatform', function(accounts) {
   const admin = accounts[0];
   const user  = accounts[1];
   const prov  = accounts[2];
+  const benf  = accounts[3];
 
-  const willId = 0x31111d;
+  const willId = (new BN(prov, 16)).iushln(92).iadd(new BN(0x31111d, 16)).toString(10);
+
   const WillState = {
     None: 0,
     Created: 1,
     Activated: 2,
-    Claimed: 3,
-    Declined: 4
+    Pending: 3,
+    Claimed: 4,
+    Declined: 5
   };
 
   let wpContract = null;
@@ -37,26 +42,34 @@ contract('WPlatform', function(accounts) {
   });
 
   it("should configure the contract", async () => {
-    txResult = await wpContract.setAnnaulPlatformFee(1, { from: admin });
+    let txResult;
+    txResult = await wpContract.setAnnaulPlatformFee(5, { from: admin });
     txResult = await wpContract.setEthRate(1, { from: admin });
-    txResult = await wpContract.setAnnaulProviderFee(1, { from: prov });
+    txResult = await wpContract.setAnnaulProviderFee(10, { from: prov });
 
-    assert.equal(await wpContract.annualPlatformFee.call(), 'WPlatform', 'the contract has the wrong Annual Platform Fee');
-    assert.equal(await wpContract.weiRate.call(), 'WPlatform', 'the contract has the wrong Ethereum Rate');
-    assert.equal(await wpContract.annualProviderFee.call(), 'WPlatform', 'the contract has the wrong Annual Provider Fee');
+    const annualPlatformFee = await wpContract.annualPlatformFee.call();
+    const weiRate = await wpContract.weiRate.call();
+    const annualProviderFee = await wpContract.annualProviderFee.call(prov);
+    assert.equal(annualPlatformFee.toString(), '5', 'the contract has the wrong Annual Platform Fee');
+    assert.equal(weiRate.toString(), '1', 'the contract has the wrong Ethereum Rate');
+    assert.equal(annualProviderFee.toString(), '10', 'the contract has the wrong Annual Provider Fee');
   });
 
   it("should create a will", async () => {
     let txResult, txEvent;
 
-    txResult = await wpContract.createWill(willId, 0x5108a9e, prov, { from: user, value: 2.0e+3 });
+    let benHash = (new BN(benf, 16)).toBuffer();
+    benHash = benHash.slice(1);
+    benHash = new BN(keccak256(benHash), 16);
+
+    txResult = await wpContract.createWill(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 2.0e+3 });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
-    assert.equal(txEvent.args.willId, willId, 'the will is created with the wrong ID');
+    assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.provider, prov, 'the will is created for the wrong provider');
 
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
-    assert.equal(txEvent.args.willId, willId, 'the will is created with the wrong ID');
+    assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.newState, WillState.Created, 'the will is created with the wrong state');
   });
@@ -66,7 +79,7 @@ contract('WPlatform', function(accounts) {
 
     txResult = await wpContract.activateWill(willId, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
-    assert.equal(txEvent.args.willId, willId, 'the will is created with the wrong ID');
+    assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.newState, WillState.Activated, 'the will is activated with the wrong state');
   });
@@ -76,7 +89,7 @@ contract('WPlatform', function(accounts) {
 
     txResult = await wpContract.applyWill(willId, 0xe4c6, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
-    assert.equal(txEvent.args.willId, willId, 'the will is created with the wrong ID');
+    assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.newState, WillState.Pending, 'the will is applied with the wrong state');
   });
@@ -84,9 +97,9 @@ contract('WPlatform', function(accounts) {
   it("should claim the will", async () => {
     let txResult, txEvent;
 
-    txResult = await wpContract.claimWill(willId, { from: prov });
+    txResult = await wpContract.claimWill(willId, { from: benf });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
-    assert.equal(txEvent.args.willId, willId, 'the will is created with the wrong ID');
+    assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.newState, WillState.Claimed, 'the will is claimed with the wrong state');
   });

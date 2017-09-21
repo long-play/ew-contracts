@@ -7,7 +7,9 @@
   "dependencies": {
     "zeppelin-solidity": "^1.2.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "js-sha3": "^0.6.1"
+  },
   "scripts": {},
   "main": "",
   "repository": {
