@@ -103,4 +103,16 @@ contract('WPlatform', function(accounts) {
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.newState, WillState.Claimed, 'the will is claimed with the wrong state');
   });
+
+  it("should not decline the will", async () => {
+    let txResult, txEvent;
+
+    try {
+      txResult = await wpContract.declineWill(willId, { from: prov });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+      assert.isNull(txEvent, 'the will declined although should not');
+    } catch (err) {
+      assert.isNotNull(err, 'the will declined although should not');
+    }
+  });
 });
