@@ -23,7 +23,7 @@ contract('WPlatform', function(accounts) {
   const prov  = accounts[2];
   const benf  = accounts[3];
 
-  const willId = (new BN(prov, 16)).iushln(92).iadd(new BN(0x31111d, 16)).toString(10);
+  const willId = (new BN(prov.slice(2), 16)).iushln(92).iadd(new BN(0x31111d, 16)).toString(10);
 
   const WillState = {
     None: 0,
@@ -58,8 +58,7 @@ contract('WPlatform', function(accounts) {
   it("should create a will", async () => {
     let txResult, txEvent;
 
-    let benHash = (new BN(benf, 16)).toBuffer();
-    benHash = benHash.slice(1);
+    let benHash = (new BN(benf.slice(2), 16)).toBuffer();
     benHash = new BN(keccak256(benHash), 16);
 
     txResult = await wpContract.createWill(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 2.0e+3 });

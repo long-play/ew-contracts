@@ -38,8 +38,8 @@ contract WPlatform is Ownable {
   uint256 public platformFund;      // platform's balance in wei
   mapping (address => uint256) public providerBalance;     // provider's balance in wei
 
-  mapping (uint256 => Will) wills;
-  mapping (address => uint256[]) userWills;
+  mapping (uint256 => Will) public wills;
+  mapping (address => uint256[]) public userWills;
 
   // Modifiers
   modifier onlyWillOwner(uint256 willId) {
