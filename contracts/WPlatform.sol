@@ -16,6 +16,7 @@ contract WPlatform is Ownable {
     uint256     decryptionKey;
     address     owner;
     WillState   state;
+    uint256     createdAt;
     uint256     updatedAt;
     uint256     validTill;
     address     provider;
@@ -31,15 +32,15 @@ contract WPlatform is Ownable {
   // State Variables
   string public name = 'WPlatform';
 
-  uint256 public annualPlatformFee; // annual platform fee in dollars
-  uint256 public weiRate;           // exchange rate weis per dollar
-  mapping (address => uint256) public annualProviderFee;   // annual provider fee in dollars
+  uint256 public annualPlatformFee; // annual platform fee in weis
+  mapping (address => uint256) public annualProviderFee;   // annual provider fee in weis
 
   uint256 public platformFund;      // platform's balance in wei
   mapping (address => uint256) public providerBalance;     // provider's balance in wei
 
   mapping (uint256 => Will) public wills;
   mapping (address => uint256[]) public userWills;
+  mapping (uint256 => uint256[]) public beneficiaryWills;
 
   // Modifiers
   modifier onlyWillOwner(uint256 willId) {
@@ -55,14 +56,13 @@ contract WPlatform is Ownable {
   }
 
   modifier sufficientAmount(uint256 _annualFee) {
-    require(msg.value >= toWeis(annualPlatformFee) + toWeis(_annualFee) * 12 / 10);
+    require(msg.value >= annualPlatformFee + _annualFee * 12 / 10);
     _;
   }
 
   // Constructor
-  function WPlatform(uint256 _annualFee, uint256 _ethRate) {
+  function WPlatform(uint256 _annualFee) {
     annualPlatformFee = _annualFee;
-    weiRate = _ethRate;
   }
 
   // Configuration
@@ -70,21 +70,8 @@ contract WPlatform is Ownable {
     annualPlatformFee = _fee;
   }
 
-  function setEthRate(uint256 _rate) onlyOwner {
-    weiRate = _rate;
-  }
-
   function setAnnaulProviderFee(uint256 _fee) {
     annualProviderFee[msg.sender] = _fee;
-  }
-
-  // Utils
-  function toWeis(uint256 _dollars) internal constant returns (uint256 weis) {
-    return _dollars * weiRate;
-  }
-
-  function toDollars(uint256 _weis) internal constant returns (uint256 dollars) {
-    return _weis / weiRate;
   }
 
   // Will
@@ -92,8 +79,8 @@ contract WPlatform is Ownable {
     require(wills[_willId].state == WillState.None);
     require(address(_willId >> 92) == _provider);
 
-    uint256 balance = msg.value - toWeis(annualPlatformFee);
-    platformFund += toWeis(annualPlatformFee);
+    uint256 balance = msg.value - annualPlatformFee;
+    platformFund += annualPlatformFee;
 
     wills[_willId] = Will({
       willId: _willId,
@@ -104,6 +91,7 @@ contract WPlatform is Ownable {
       state: WillState.Created,
       beneficiaryHash: _beneficiaryHash,
       decryptionKey: 0,
+      createdAt: now,
       updatedAt: now,
       validTill: 0,
       provider: _provider
@@ -122,7 +110,7 @@ contract WPlatform is Ownable {
     will.updatedAt = now;
     will.validTill = now + 1 years;
 
-    uint256 initialFee = toWeis(will.annualFee) / 10;
+    uint256 initialFee = will.annualFee / 10;
     will.balance -= initialFee;
     providerBalance[msg.sender] += initialFee;
 
@@ -133,7 +121,7 @@ contract WPlatform is Ownable {
     Will storage will = wills[_willId];
     require(will.state == WillState.Activated);
 
-    uint256 monthlyFee = toWeis(will.annualFee) / 12; //todo: make a custom time period
+    uint256 monthlyFee = will.annualFee / 12; //todo: make a custom time period
     will.balance -= monthlyFee;
     providerBalance[msg.sender] += monthlyFee;
 
@@ -144,8 +132,8 @@ contract WPlatform is Ownable {
     Will storage will = wills[_willId];
     require(will.state == WillState.Activated);
 
-    uint256 balance = msg.value - toWeis(annualPlatformFee);
-    platformFund += toWeis(annualPlatformFee);
+    uint256 balance = msg.value - annualPlatformFee;
+    platformFund += annualPlatformFee;
 
     will.validTill += 1 years;
     will.balance += balance;
@@ -160,6 +148,7 @@ contract WPlatform is Ownable {
     will.decryptionKey = _decryptionKey;
     will.state = WillState.Pending;
     will.updatedAt = now;
+    beneficiaryWills[will.beneficiaryHash].push(_willId);
 
     WillStateUpdated(will.willId, will.owner, will.state);
   }
