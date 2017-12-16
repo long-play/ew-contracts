@@ -12,4 +12,6 @@ TestUtils.findEvent = (logs, eventName) => {
   return result;
 };
 
+TestUtils.timeout = ms => new Promise(res => setTimeout(res, ms));
+
 module.exports = TestUtils;

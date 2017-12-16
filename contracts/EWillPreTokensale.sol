@@ -25,6 +25,7 @@ contract EWillPreTokensale is Ownable {
 
     // Events
     event NewContribution(address holder, uint256 tokenAmount);
+    event PreTokensaleFinalized(uint256 remainedTokens);
 
     // Modifiers
     modifier notFinalized() {
@@ -63,6 +64,8 @@ contract EWillPreTokensale is Ownable {
         uint256 tokenBalance = token.balanceOf(this);
         token.transfer(_walletForTokens, tokenBalance);
         finalized = true;
+
+        PreTokensaleFinalized(tokenBalance);
     }
 
     // Internal functions

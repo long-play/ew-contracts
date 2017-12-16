@@ -2,19 +2,18 @@ const EWillPreTokensale = artifacts.require("EWillPreTokensale");
 const EWillToken = artifacts.require("EWillToken");
 const TestUtils = require('./test-utils.js');
 
-const timeout = ms => new Promise(res => setTimeout(res, ms));
-
 contract('EWillPreTokensale', function(accounts) {
   const owner    = accounts[0];
   const account1 = accounts[1];
   const account2 = accounts[2];
+  const wallet   = accounts[3];
 
   let ewToken = null;
   let ewPreTokensale = null;
 
   it("should have a correct name", async () => {
     const now = Date.now() / 1000;
-    ewPreTokensale = await EWillPreTokensale.new(10, now + 2, now + 60);
+    ewPreTokensale = await EWillPreTokensale.new(10, now + 2, now + 5);
     ewToken = EWillToken.at(await ewPreTokensale.token.call());
     const name = await ewPreTokensale.name.call();
     assert.equal(name, 'E-Will Pre-Tokensale', 'the contract has the wrong name');
@@ -43,7 +42,7 @@ contract('EWillPreTokensale', function(accounts) {
   });
 
   it("should allow to buy tokens", async () => {
-    await timeout(3000);
+    await TestUtils.timeout(3000);
     const sendAmount = 2.0e+18;
     const receiveAmount = 2.0e+19;
     const balanceBefore = await ewToken.balanceOf.call(account1);
@@ -83,6 +82,49 @@ contract('EWillPreTokensale', function(accounts) {
       assert.isNotNull(err, 'the user bought more tokens than allowed');
     }
     assert.isNull(txResult, 'the user bought more tokens than allowed');
+
+    const balanceAfter = await ewToken.balanceOf.call(account1);
+    const balanceDiff = balanceAfter - balanceBefore;
+    assert.equal(balanceDiff.toString(), '0', 'the account1 has the wrong token amount');
+  });
+
+  it("should not allow to finalize the tokensale before it ends", async () => {
+    const balanceBefore = await ewToken.balanceOf.call(wallet);
+    let txResult = null;
+    try {
+      txResult = await ewPreTokensale.finalize(wallet, { from: owner });
+    } catch (err) {
+      assert.isNotNull(err, 'the tokensale finalized before it ends');
+    }
+    assert.isNull(txResult, 'the tokensale finalized before it ends');
+
+    const balanceAfter = await ewToken.balanceOf.call(wallet);
+    const balanceDiff = balanceAfter - balanceBefore;
+    assert.equal(balanceDiff.toString(), '0', 'the wallet has the wrong token amount');
+  });
+
+  it("should allow to finalize the tokensale", async () => {
+    await TestUtils.timeout(3000);
+    const balanceBefore = await ewToken.balanceOf.call(wallet);
+    const txResult = await ewPreTokensale.finalize(wallet, { from: owner });
+    txEvent = TestUtils.findEvent(txResult.logs, 'PreTokensaleFinalized');
+    assert.notEqual(txEvent.args.remainedTokens.toString(), '0', 'remained wrong amount of tokens');
+
+    const balanceAfter = await ewToken.balanceOf.call(wallet);
+    const balanceDiff = balanceAfter - balanceBefore;
+    assert.equal(txEvent.args.remainedTokens.toString(), balanceDiff.toString(), 'the wallet has the wrong token amount');
+  });
+
+  it("should not allow to buy tokens after the tokensale finalized", async () => {
+    const sendAmount = 2.0e+18;
+    const balanceBefore = await ewToken.balanceOf.call(account1);
+    let txResult = null;
+    try {
+      txResult = await ewPreTokensale.sendTransaction({ value: sendAmount, from: account1 });
+    } catch (err) {
+      assert.isNotNull(err, 'the user bought tokens after the tokensale finalized');
+    }
+    assert.isNull(txResult, 'the user bought tokens after the tokensale finalized');
 
     const balanceAfter = await ewToken.balanceOf.call(account1);
     const balanceDiff = balanceAfter - balanceBefore;
