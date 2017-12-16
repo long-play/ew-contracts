@@ -1,21 +1,7 @@
 const WPlatform = artifacts.require("WPlatform");
 const keccak256 = require('js-sha3').keccak256;
 const BN = require('bn.js');
-
-//todo: move to separate utils file
-//const TestUtils = require('./TestUtils.js');
-TestUtils = {};
-TestUtils.findEvent = (logs, eventName) => {
-  let result = null;
-  for (let idx = 0; idx < logs.length; idx++) {
-    const log = logs[idx];
-    if (log.event === eventName) {
-      result = log;
-      break;
-    }
-  }
-  return result;
-};
+const TestUtils = require('./test-utils.js');
 
 contract('WPlatform', function(accounts) {
   const admin = accounts[0];
@@ -38,7 +24,6 @@ contract('WPlatform', function(accounts) {
 
   it("should have a correct name", async () => {
     wpContract = await WPlatform.deployed();
-    console.log(wpContract.address + ' / ' + user);
     assert.equal(await wpContract.name.call(), 'WPlatform', 'the contract has the wrong name');
   });
 
