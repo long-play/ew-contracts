@@ -1,9 +1,9 @@
-const WPlatform = artifacts.require("WPlatform");
+const EWillPlatform = artifacts.require("EWillPlatform");
 const keccak256 = require('js-sha3').keccak256;
 const BN = require('bn.js');
 const TestUtils = require('./test-utils.js');
 
-contract('WPlatform', function(accounts) {
+contract('EWillPlatform', function(accounts) {
   // not yet updated
   return;
 
@@ -26,8 +26,8 @@ contract('WPlatform', function(accounts) {
   let wpContract = null;
 
   it("should have a correct name", async () => {
-    wpContract = await WPlatform.deployed();
-    assert.equal(await wpContract.name.call(), 'WPlatform', 'the contract has the wrong name');
+    wpContract = await EWillPlatform.deployed();
+    assert.equal(await wpContract.name.call(), 'EWillPlatform', 'the contract has the wrong name');
   });
 
   it("should configure the contract", async () => {
