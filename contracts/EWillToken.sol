@@ -6,8 +6,8 @@ import 'zeppelin-solidity/contracts/token/StandardToken.sol';
 
 contract EWillToken is DetailedERC20('EWill', 'EWILL', 18), StandardToken {
   // Constructor
-  function EWillToken() public {
-    totalSupply = 100000;
+  function EWillToken(uint256 _totalSupply) public {
+    totalSupply = _totalSupply;
     balances[msg.sender] = totalSupply;
   }
 }
