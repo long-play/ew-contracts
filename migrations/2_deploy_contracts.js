@@ -1,5 +1,5 @@
-var WPlatform = artifacts.require("./WPlatform.sol");
+var EWillToken = artifacts.require("./EWillToken.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(WPlatform, 1, 1);
+  deployer.deploy(EWillToken);
 };
