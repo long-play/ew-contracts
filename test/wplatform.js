@@ -23,7 +23,7 @@ contract('WPlatform', function(accounts) {
   const prov  = accounts[2];
   const benf  = accounts[3];
 
-  const willId = (new BN(prov.slice(2), 16)).iushln(92).iadd(new BN(0x31111d, 16)).toString(10);
+  const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
 
   const WillState = {
     None: 0,
@@ -38,6 +38,7 @@ contract('WPlatform', function(accounts) {
 
   it("should have a correct name", async () => {
     wpContract = await WPlatform.deployed();
+    console.log(wpContract.address + ' / ' + user);
     assert.equal(await wpContract.name.call(), 'WPlatform', 'the contract has the wrong name');
   });
 
@@ -102,6 +103,17 @@ contract('WPlatform', function(accounts) {
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
     assert.equal(txEvent.args.newState, WillState.Claimed, 'the will is claimed with the wrong state');
   });
+
+/*
+  it("should return user's will id", async () => {
+    let txResult, txEvent;
+
+    txResult = await wpContract.userWills(user, 0, { from: user });
+    console.log(txResult);
+    txResult = await wpContract.userWills(user, 1, { from: user });
+    console.log(txResult);
+  });
+*/
 
   it("should not decline the will", async () => {
     let txResult, txEvent;

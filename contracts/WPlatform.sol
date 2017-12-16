@@ -77,7 +77,7 @@ contract WPlatform is Ownable {
   // Will
   function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) sufficientAmount(annualProviderFee[_provider]) payable {
     require(wills[_willId].state == WillState.None);
-    require(address(_willId >> 92) == _provider);
+    require(address(_willId >> 96) == _provider);
 
     uint256 balance = msg.value - annualPlatformFee;
     platformFund += annualPlatformFee;
