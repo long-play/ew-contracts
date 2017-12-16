@@ -61,21 +61,21 @@ contract WPlatform is Ownable {
   }
 
   // Constructor
-  function WPlatform(uint256 _annualFee) {
+  function WPlatform(uint256 _annualFee) public {
     annualPlatformFee = _annualFee;
   }
 
   // Configuration
-  function setAnnaulPlatformFee(uint256 _fee) onlyOwner {
+  function setAnnaulPlatformFee(uint256 _fee) onlyOwner public {
     annualPlatformFee = _fee;
   }
 
-  function setAnnaulProviderFee(uint256 _fee) {
+  function setAnnaulProviderFee(uint256 _fee) public {
     annualProviderFee[msg.sender] = _fee;
   }
 
   // Will
-  function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) sufficientAmount(annualProviderFee[_provider]) payable {
+  function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) sufficientAmount(annualProviderFee[_provider]) payable public {
     require(wills[_willId].state == WillState.None);
     require(address(_willId >> 96) == _provider);
 
@@ -102,7 +102,7 @@ contract WPlatform is Ownable {
     WillStateUpdated(_willId, msg.sender, WillState.Created);
   }
 
-  function activateWill(uint256 _willId) onlyProvider(_willId) {
+  function activateWill(uint256 _willId) onlyProvider(_willId) public {
     Will storage will = wills[_willId];
     require(will.state == WillState.Created);
 
@@ -117,7 +117,7 @@ contract WPlatform is Ownable {
     WillStateUpdated(will.willId, will.owner, will.state);
   }
 
-  function refreshWill(uint256 _willId) onlyProvider(_willId) {
+  function refreshWill(uint256 _willId) onlyProvider(_willId) public {
     Will storage will = wills[_willId];
     require(will.state == WillState.Activated);
 
@@ -128,7 +128,7 @@ contract WPlatform is Ownable {
     WillRefreshed(will.willId, will.owner);
   }
 
-  function prolongWill(uint256 _willId) sufficientAmount(wills[_willId].annualFee) payable {
+  function prolongWill(uint256 _willId) sufficientAmount(wills[_willId].annualFee) payable public {
     Will storage will = wills[_willId];
     require(will.state == WillState.Activated);
 
@@ -141,7 +141,7 @@ contract WPlatform is Ownable {
     WillProlonged(will.willId, will.owner, will.validTill);
   }
 
-  function applyWill(uint256 _willId, uint256 _decryptionKey) onlyProvider(_willId) {
+  function applyWill(uint256 _willId, uint256 _decryptionKey) onlyProvider(_willId) public {
     Will storage will = wills[_willId];
     require(will.state == WillState.Activated);
 
@@ -153,10 +153,10 @@ contract WPlatform is Ownable {
     WillStateUpdated(will.willId, will.owner, will.state);
   }
 
-  function claimWill(uint256 _willId) {
+  function claimWill(uint256 _willId) public {
     Will storage will = wills[_willId];
     require(will.state == WillState.Pending);
-    require(uint256(sha3(msg.sender)) == will.beneficiaryHash);
+    require(uint256(keccak256(msg.sender)) == will.beneficiaryHash);
 
     will.state = WillState.Claimed;
     will.updatedAt = now;
@@ -164,7 +164,7 @@ contract WPlatform is Ownable {
     WillStateUpdated(will.willId, will.owner, will.state);
   }
 
-  function declineWill(uint256 _willId) onlyProvider(_willId) {
+  function declineWill(uint256 _willId) onlyProvider(_willId) public {
     Will storage will = wills[_willId];
     require(will.state == WillState.Activated);
     require(will.validTill < now);
@@ -175,7 +175,7 @@ contract WPlatform is Ownable {
     WillStateUpdated(will.willId, will.owner, will.state);
   }
 
-  function withdraw(uint256 _amount) {
+  function withdraw(uint256 _amount) public {
     require(_amount <= providerBalance[msg.sender]);
 
     providerBalance[msg.sender] -= _amount;

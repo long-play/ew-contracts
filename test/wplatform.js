@@ -45,14 +45,11 @@ contract('WPlatform', function(accounts) {
   it("should configure the contract", async () => {
     let txResult;
     txResult = await wpContract.setAnnaulPlatformFee(5, { from: admin });
-    txResult = await wpContract.setEthRate(1, { from: admin });
     txResult = await wpContract.setAnnaulProviderFee(10, { from: prov });
 
     const annualPlatformFee = await wpContract.annualPlatformFee.call();
-    const weiRate = await wpContract.weiRate.call();
     const annualProviderFee = await wpContract.annualProviderFee.call(prov);
     assert.equal(annualPlatformFee.toString(), '5', 'the contract has the wrong Annual Platform Fee');
-    assert.equal(weiRate.toString(), '1', 'the contract has the wrong Ethereum Rate');
     assert.equal(annualProviderFee.toString(), '10', 'the contract has the wrong Annual Provider Fee');
   });
 
