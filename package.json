@@ -5,9 +5,12 @@
   "description": "The smart-contract for the Platform for the service of digital willing",
   "keywords": [],
   "dependencies": {
-    "zeppelin-solidity": "^1.2.0"
+    "zeppelin-solidity": "^1.4.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "bn.js": "^4.11.8",
+    "js-sha3": "^0.7.0"
+  },
   "scripts": {},
   "main": "",
   "repository": {
