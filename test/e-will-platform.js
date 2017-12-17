@@ -1,3 +1,5 @@
+const EWillEscrow = artifacts.require("EWillEscrow");
+const EWillAccount = artifacts.require("EWillAccount");
 const EWillPlatform = artifacts.require("EWillPlatform");
 const keccak256 = require('js-sha3').keccak256;
 const BN = require('bn.js');
@@ -20,20 +22,24 @@ contract('EWillPlatform', function(accounts) {
     Declined: 5
   };
 
-  let wpContract = null;
+  let ewPlatform = null;
+  let ewAccount = null;
+  let ewEscrow = null;
 
   it("should have a correct name", async () => {
-    wpContract = await EWillPlatform.new(1);
-    assert.equal(await wpContract.name.call(), 'E-Will Platform', 'the contract has the wrong name');
+    ewEscrow = await EWillEscrow.new();
+    ewAccount = await EWillAccount.new();
+    ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address);
+    assert.equal(await ewPlatform.name.call(), 'E-Will Platform', 'the contract has the wrong name');
   });
 
   it("should configure the contract", async () => {
     let txResult;
-    txResult = await wpContract.setAnnaulPlatformFee(5, { from: admin });
-    txResult = await wpContract.setAnnaulProviderFee(10, { from: prov });
+    txResult = await ewPlatform.setAnnaulPlatformFee(5, { from: admin });
+    txResult = await ewPlatform.setAnnaulProviderFee(10, { from: prov });
 
-    const annualPlatformFee = await wpContract.annualPlatformFee.call();
-    const annualProviderFee = await wpContract.annualProviderFee.call(prov);
+    const annualPlatformFee = await ewPlatform.annualPlatformFee.call();
+    const annualProviderFee = await ewPlatform.annualProviderFee.call(prov);
     assert.equal(annualPlatformFee.toString(), '5', 'the contract has the wrong Annual Platform Fee');
     assert.equal(annualProviderFee.toString(), '10', 'the contract has the wrong Annual Provider Fee');
   });
@@ -44,7 +50,7 @@ contract('EWillPlatform', function(accounts) {
     let benHash = (new BN(benf.slice(2), 16)).toBuffer();
     benHash = new BN(keccak256(benHash), 16);
 
-    txResult = await wpContract.createWill(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 2.0e+3 });
+    txResult = await ewPlatform.createWill(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 2.0e+3 });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
     assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -59,7 +65,7 @@ contract('EWillPlatform', function(accounts) {
   it("should activate the will", async () => {
     let txResult, txEvent;
 
-    txResult = await wpContract.activateWill(willId, { from: prov });
+    txResult = await ewPlatform.activateWill(willId, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
     assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -69,7 +75,7 @@ contract('EWillPlatform', function(accounts) {
   it("should apply the will", async () => {
     let txResult, txEvent;
 
-    txResult = await wpContract.applyWill(willId, 0xe4c6, { from: prov });
+    txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
     assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -79,7 +85,7 @@ contract('EWillPlatform', function(accounts) {
   it("should claim the will", async () => {
     let txResult, txEvent;
 
-    txResult = await wpContract.claimWill(willId, { from: benf });
+    txResult = await ewPlatform.claimWill(willId, { from: benf });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
     assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -90,9 +96,9 @@ contract('EWillPlatform', function(accounts) {
   it("should return user's will id", async () => {
     let txResult, txEvent;
 
-    txResult = await wpContract.userWills(user, 0, { from: user });
+    txResult = await ewPlatform.userWills(user, 0, { from: user });
     console.log(txResult);
-    txResult = await wpContract.userWills(user, 1, { from: user });
+    txResult = await ewPlatform.userWills(user, 1, { from: user });
     console.log(txResult);
   });
 */
@@ -101,7 +107,7 @@ contract('EWillPlatform', function(accounts) {
     let txResult, txEvent;
 
     try {
-      txResult = await wpContract.declineWill(willId, { from: prov });
+      txResult = await ewPlatform.declineWill(willId, { from: prov });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       assert.isNull(txEvent, 'the will declined although should not');
     } catch (err) {

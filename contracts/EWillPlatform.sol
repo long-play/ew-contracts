@@ -1,6 +1,8 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import './EWillAccountIf.sol';
+import './EWillEscrowIf.sol';
 
 
 contract EWillPlatform is Ownable {
@@ -32,6 +34,9 @@ contract EWillPlatform is Ownable {
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
 
+    EWillAccountIf public accountWallet;
+    EWillEscrowIf public escrowWallet;
+
     // Events
     event WillCreated(uint256 willId, address owner, address provider);
     event WillStateUpdated(uint256 willId, address owner, WillState newState);
@@ -62,8 +67,10 @@ contract EWillPlatform is Ownable {
     }
 
     // Constructor
-    function EWillPlatform(uint256 _annualFee) public {
+    function EWillPlatform(uint256 _annualFee, address _account, address _escrow) public {
         annualPlatformFee = _annualFee;
+        accountWallet = EWillAccountIf(_account);
+        escrowWallet = EWillEscrowIf(_escrow);
     }
 
     // Configuration
@@ -126,7 +133,7 @@ contract EWillPlatform is Ownable {
         });
         userWills[msg.sender].push(_willId);
 
-        //accountingWallet.fund.value(annualPlatformFee)(_willId);
+        accountWallet.fund.value(annualPlatformFee)(_willId);
 
         WillCreated(_willId, msg.sender, _provider);
         WillStateUpdated(_willId, msg.sender, WillState.Created);
@@ -140,7 +147,7 @@ contract EWillPlatform is Ownable {
         will.updatedAt = now;
         will.validTill = now + 1 years;
 
-        //escrowWallet.fund.value(activationReward(will))(_willId, will.provider);
+        escrowWallet.fund.value(activationReward(will))(_willId, will.provider);
 
         WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -152,7 +159,7 @@ contract EWillPlatform is Ownable {
 
         will.updatedAt = now;
 
-        //escrowWallet.fund.value(refreshReward(will))(_willId, will.provider);
+        escrowWallet.fund.value(refreshReward(will))(_willId, will.provider);
 
         WillRefreshed(_willId, will.owner);
     }
@@ -172,7 +179,7 @@ contract EWillPlatform is Ownable {
 
         will.validTill += 1 years;
 
-        //accountingWallet.fund.value(annualPlatformFee)(_willId);
+        accountWallet.fund.value(annualPlatformFee)(_willId);
 
         WillProlonged(_willId, will.owner, will.validTill);
     }
