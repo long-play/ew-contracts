@@ -4,9 +4,6 @@ const BN = require('bn.js');
 const TestUtils = require('./test-utils.js');
 
 contract('EWillPlatform', function(accounts) {
-  // not yet updated
-  return;
-
   const admin = accounts[0];
   const user  = accounts[1];
   const prov  = accounts[2];
@@ -26,8 +23,8 @@ contract('EWillPlatform', function(accounts) {
   let wpContract = null;
 
   it("should have a correct name", async () => {
-    wpContract = await EWillPlatform.deployed();
-    assert.equal(await wpContract.name.call(), 'EWillPlatform', 'the contract has the wrong name');
+    wpContract = await EWillPlatform.new(1);
+    assert.equal(await wpContract.name.call(), 'E-Will Platform', 'the contract has the wrong name');
   });
 
   it("should configure the contract", async () => {
