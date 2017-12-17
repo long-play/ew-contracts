@@ -15,7 +15,7 @@ contract EWillPreTokensale is Ownable {
     uint256 constant public minContribution  = 1 * 1 ether;
     uint256 constant public maxContribution  = 100 * 1 ether;
 
-    // State
+    // State Variables
     EWillToken public token;
     bool    public finalized = false;
     uint256 public rate      = 0;

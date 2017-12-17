@@ -22,16 +22,10 @@ contract EWillPlatform is Ownable {
         address     provider;
     }
 
-    // Events
-    event WillCreated(uint256 willId, address owner, address provider);
-    event WillStateUpdated(uint256 willId, address owner, WillState newState);
-    event WillRefreshed(uint256 willId, address owner);
-    event WillProlonged(uint256 willId, address owner, uint validTill);
-    event BalanceWithdrawn(address provider, uint256 amount);
+    // Constants
+    string constant public name = 'E-Will Platform';
 
     // State Variables
-    string public name = 'E-Will Platform';
-
     uint256 public annualPlatformFee; // annual platform fee in weis
     mapping (address => uint256) public annualProviderFee;   // annual provider fee in weis
 
@@ -41,6 +35,13 @@ contract EWillPlatform is Ownable {
     mapping (uint256 => Will) public wills;
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
+
+    // Events
+    event WillCreated(uint256 willId, address owner, address provider);
+    event WillStateUpdated(uint256 willId, address owner, WillState newState);
+    event WillRefreshed(uint256 willId, address owner);
+    event WillProlonged(uint256 willId, address owner, uint validTill);
+    event BalanceWithdrawn(address provider, uint256 amount);
 
     // Modifiers
     modifier onlyWillOwner(uint256 willId) {
@@ -66,7 +67,7 @@ contract EWillPlatform is Ownable {
     }
 
     // Configuration
-    function setAnnaulPlatformFee(uint256 _fee) onlyOwner public {
+    function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
         annualPlatformFee = _fee;
     }
 
@@ -75,7 +76,7 @@ contract EWillPlatform is Ownable {
     }
 
     // Will
-    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) sufficientAmount(annualProviderFee[_provider]) payable public {
+    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable sufficientAmount(annualProviderFee[_provider]) {
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
 
@@ -102,7 +103,7 @@ contract EWillPlatform is Ownable {
         WillStateUpdated(_willId, msg.sender, WillState.Created);
     }
 
-    function activateWill(uint256 _willId) onlyProvider(_willId) public {
+    function activateWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Created);
 
@@ -117,7 +118,7 @@ contract EWillPlatform is Ownable {
         WillStateUpdated(will.willId, will.owner, will.state);
     }
 
-    function refreshWill(uint256 _willId) onlyProvider(_willId) public {
+    function refreshWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
 
@@ -128,7 +129,7 @@ contract EWillPlatform is Ownable {
         WillRefreshed(will.willId, will.owner);
     }
 
-    function prolongWill(uint256 _willId) sufficientAmount(wills[_willId].annualFee) payable public {
+    function prolongWill(uint256 _willId) public payable sufficientAmount(wills[_willId].annualFee) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
 
@@ -141,7 +142,7 @@ contract EWillPlatform is Ownable {
         WillProlonged(will.willId, will.owner, will.validTill);
     }
 
-    function applyWill(uint256 _willId, uint256 _decryptionKey) onlyProvider(_willId) public {
+    function applyWill(uint256 _willId, uint256 _decryptionKey) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
 
@@ -164,7 +165,7 @@ contract EWillPlatform is Ownable {
         WillStateUpdated(will.willId, will.owner, will.state);
     }
 
-    function declineWill(uint256 _willId) onlyProvider(_willId) public {
+    function declineWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         require(will.validTill < now);
