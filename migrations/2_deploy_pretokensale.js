@@ -5,7 +5,7 @@ module.exports = function(deployer, network) {
   let startDate = 0;
   let endDate = 0;
 
-  if (network == 'development') {
+  if (network == 'test' || network == 'staging') {
     const now = Date.now() / 1000;
     startDate = now + 10;
     endDate = now + 100;

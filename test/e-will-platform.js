@@ -27,10 +27,12 @@ contract('EWillPlatform', function(accounts) {
   let ewEscrow = null;
 
   it("should have a correct name", async () => {
-    ewEscrow = await EWillEscrow.new();
+    ewEscrow = await EWillEscrow.new(100);
     ewAccount = await EWillAccount.new();
     ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address);
-    assert.equal(await ewPlatform.name.call(), 'E-Will Platform', 'the contract has the wrong name');
+
+    const name = await ewPlatform.name.call();
+    assert.equal(name, 'E-Will Platform', 'the contract has the wrong name');
   });
 
   it("should configure the contract", async () => {

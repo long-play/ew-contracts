@@ -1,6 +1,6 @@
 module.exports = {
   networks: {
-    development: {
+    staging: {
       gas: 4712388,
       host: "localhost",
       port: 8545,

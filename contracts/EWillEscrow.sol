@@ -8,6 +8,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     // Custom Types
     struct Provider {
         uint256     fund;
+        uint256     info;
         uint256     registeredAt;
     }
 
@@ -22,10 +23,11 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // Events
     event Registered(address provider, uint256 amount);
+    event Withdrew(address provider, uint256 amount);
 
     // Modifiers
     modifier sufficientFund(address _provider, uint256 _fund) {
-        require(_fund >= minProviderFund || whitelisted[_provider]);
+        require(minFundForProvider(_provider) <= _fund);
         _;
     }
 
@@ -47,12 +49,25 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         whitelisted[_provider] = false;
     }
 
+    function updateProviderInfo(uint256 _newInfoId) public {
+        require(providers[msg.sender].registeredAt != 0);
+        require(isProviderValid(msg.sender));
+
+        providers[msg.sender].info = _newInfoId;
+    }
+
+    // Finance
+    function minFundForProvider(address _provider) public constant returns (uint256) {
+        return whitelisted[_provider] ? 0 : minProviderFund;
+    }
+
     // Escrow
-    function register() public payable sufficientFund(msg.sender, msg.value) {
+    function register(uint256 _infoId) public payable sufficientFund(msg.sender, msg.value) {
         require(providers[msg.sender].registeredAt == 0);
 
         providers[msg.sender] = Provider({
             fund: msg.value,
+            info: _infoId,
             registeredAt: now
         });
 
@@ -64,6 +79,15 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         providers[msg.sender].fund += msg.value;
 
         Funded(0, msg.sender, msg.value);
+    }
+
+    function withdraw(uint256 _amount) public {
+        uint256 remain = providers[msg.sender].fund - _amount;
+        require(minFundForProvider(msg.sender) <= remain);
+
+        providers[msg.sender].fund = remain;
+        msg.sender.transfer(_amount);
+        Withdrew(msg.sender, _amount);
     }
 
     // EWillEscrowIf
