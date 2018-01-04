@@ -28,7 +28,7 @@ contract('EWillPlatform', function(accounts) {
 
   it("should have a correct name", async () => {
     ewEscrow = await EWillEscrow.new(70);
-    ewAccount = await EWillAccount.new();
+    ewAccount = await EWillAccount.new(1000, admin);
     ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address);
 
     const name = await ewPlatform.name.call();

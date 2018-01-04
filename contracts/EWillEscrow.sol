@@ -96,7 +96,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         Funded(_willId, _provider, msg.value);
     }
 
-    function isProviderValid(address _provider) constant public sufficientFund(_provider, providers[_provider].fund) returns (bool) {
-        return true;
+    function isProviderValid(address _provider) constant public returns (bool) {
+        return minFundForProvider(_provider) <= providers[_provider].fund;
     }
 }
