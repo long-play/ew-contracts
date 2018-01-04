@@ -23,7 +23,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     function EWillAccount(uint256 _minFund, address _accounter) public {
         minLockedFund = _minFund * 1 ether;
         accounter = _accounter;
-        lastPayout = now;
+        lastPayout = 0;
     }
 
     // Configuration
@@ -37,7 +37,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
 
     // Accounting
     function payOperationalExpenses(uint256 _amount) public onlyOwner {
-        require(now - lastPayout < 28 days); // don't allow to payout to often
+        require(now - lastPayout >= 28 days); // don't allow to payout to often
         require(_amount <= this.balance / 2);  // don't allow to withdraw more than a half of entire fund
 
         lastPayout = now;
