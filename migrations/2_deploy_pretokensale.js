@@ -13,7 +13,7 @@ module.exports = function(deployer, network) {
   else {
     startDate = Date.parse('01/15/2018 15:15:15');
     endDate = Date.parse('02/15/2018 15:15:15');
-    throw Error('not implemented');
+    throw new Error('not implemented');
   }
 
   deployer.deploy(EWillPreTokensale, price, startDate, endDate);

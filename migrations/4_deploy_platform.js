@@ -9,6 +9,6 @@ module.exports = async function(deployer, network) {
     const platform = await deployer.deploy(EWillPlatform);
   }
   else {
-    throw Error('not implemented');
+    throw new Error('not implemented');
   }
 };

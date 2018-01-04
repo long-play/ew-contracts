@@ -59,7 +59,7 @@ contract EWillPlatform is Ownable {
 
     modifier sufficientAmount(uint256 _willId, address _provider) {
         if (_willId > 0) {
-            require(annualFee(wills[_willId]) <= msg.value);
+            require(annualFee(_willId) <= msg.value);
         } else {
             require(creatingFee(_provider) <= msg.value);
         }
@@ -109,6 +109,7 @@ contract EWillPlatform is Ownable {
 
     // Will
     function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable sufficientAmount(0, _provider) {
+        require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
 
@@ -171,6 +172,9 @@ contract EWillPlatform is Ownable {
         will.annualFee = _annualProviderFee;
 
         WillAnnualFeeDecreased(_willId, will.annualFee);
+
+        //todo: prolong the will within unspent funds
+        WillProlonged(_willId, will.owner, will.validTill);
     }
 
     function prolongWill(uint256 _willId) public payable sufficientAmount(_willId, address(0)) {
@@ -202,7 +206,9 @@ contract EWillPlatform is Ownable {
         require(uint256(keccak256(msg.sender)) == will.beneficiaryHash);
 
         will.state = WillState.Claimed;
-        will.updatedAt = now;
+
+        //todo: return unspent funds to the beneficiary
+        escrowWallet.fund.value(claimReward(will))(_willId, will.provider);
 
         WillStateUpdated(_willId, will.owner, will.state);
     }
