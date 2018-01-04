@@ -4,9 +4,11 @@ const EWillPlatform = artifacts.require("./EWillPlatform.sol");
 
 module.exports = async function(deployer, network) {
   if (network == 'test' || network == 'staging') {
-    const escrow = await deployer.deploy(EWillEscrow, 100); // 100 ethers
-    const account = await deployer.deploy(EWillAccount);
-    const platform = await deployer.deploy(EWillPlatform, 0.05e18, account, escrow); // 0.05 ethers
+    await deployer.deploy(EWillEscrow, 100); // 100 ethers
+    const escrow = EWillEscrow.address;
+    await deployer.deploy(EWillAccount);
+    const account = EWillAccount.address;
+    await deployer.deploy(EWillPlatform, 0.05e+18, account, escrow); // 0.05 ethers
   }
   else {
     throw new Error('not implemented');

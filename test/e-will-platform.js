@@ -27,7 +27,7 @@ contract('EWillPlatform', function(accounts) {
   let ewEscrow = null;
 
   it("should have a correct name", async () => {
-    ewEscrow = await EWillEscrow.new(100);
+    ewEscrow = await EWillEscrow.new(70);
     ewAccount = await EWillAccount.new();
     ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address);
 
@@ -44,6 +44,8 @@ contract('EWillPlatform', function(accounts) {
     const annualProviderFee = await ewPlatform.annualProviderFee.call(prov);
     assert.equal(annualPlatformFee.toString(), '5', 'the contract has the wrong Annual Platform Fee');
     assert.equal(annualProviderFee.toString(), '10', 'the contract has the wrong Annual Provider Fee');
+
+    txResult = await ewEscrow.register(0x0badfeed, { from: prov, value: 80.0e+18 });
   });
 
   it("should create a will", async () => {
