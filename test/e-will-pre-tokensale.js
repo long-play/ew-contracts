@@ -105,14 +105,18 @@ contract('EWillPreTokensale', function(accounts) {
 
   it("should allow to finalize the tokensale", async () => {
     await TestUtils.timeout(3000);
+    const collected = await ewPreTokensale.collected.call();
+    const totalSupply = await ewPreTokensale.tokenTotalSupply.call();
+    const unsoldTokens = totalSupply.sub(collected);
+
     const balanceBefore = await ewToken.balanceOf.call(wallet);
     const txResult = await ewPreTokensale.finalize(wallet, { from: owner });
     txEvent = TestUtils.findEvent(txResult.logs, 'PreTokensaleFinalized');
-    assert.notEqual(txEvent.args.remainedTokens.toString(), '0', 'remained wrong amount of tokens');
+    assert.equal(txEvent.args.collected.toString(), collected.toString(), 'collected wrong amount of tokens');
 
     const balanceAfter = await ewToken.balanceOf.call(wallet);
-    const balanceDiff = balanceAfter - balanceBefore;
-    assert.equal(txEvent.args.remainedTokens.toString(), balanceDiff.toString(), 'the wallet has the wrong token amount');
+    const balanceDiff = balanceAfter.sub(balanceBefore);
+    assert.equal(balanceDiff.toString(), unsoldTokens.toString(), 'the wallet has the wrong token amount');
   });
 
   it("should not allow to buy tokens after the tokensale finalized", async () => {
