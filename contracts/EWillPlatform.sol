@@ -53,7 +53,8 @@ contract EWillPlatform is Ownable {
 
     modifier onlyProvider(uint256 _willId) {
         Will storage will = wills[_willId];
-        require(will.provider == msg.sender);
+        address provider = escrowWallet.providerAddress(msg.sender);
+        require(/*todo: remove provider, the delegate only*/will.provider == msg.sender || will.provider == provider);
         _;
     }
 

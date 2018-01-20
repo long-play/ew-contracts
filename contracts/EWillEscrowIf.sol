@@ -6,4 +6,5 @@ contract EWillEscrowIf {
 
     function fund(uint256 _willId, address _provider) public payable;
     function isProviderValid(address _provider) constant public returns (bool);
+    function providerAddress(address _delegate) constant public returns (address);
 }

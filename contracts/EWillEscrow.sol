@@ -10,6 +10,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         uint256     fund;
         uint256     info;
         uint256     registeredAt;
+        address     delegate;
     }
 
     // Constants
@@ -19,10 +20,12 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     uint256 public minProviderFund; // the minimum provider's fund in weis
 
     mapping (address => Provider) public providers;
+    mapping (address => address) public delegates;
     mapping (address => bool) public whitelisted;
 
     // Events
     event Registered(address provider, uint256 amount);
+    event UpdatedDelegate(address provider, address delegate);
     event Withdrew(address provider, uint256 amount);
 
     // Modifiers
@@ -62,16 +65,31 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Escrow
-    function register(uint256 _infoId) public payable sufficientFund(msg.sender, msg.value) {
+    function register(uint256 _infoId, address _delegate) public payable sufficientFund(msg.sender, msg.value) {
         require(providers[msg.sender].registeredAt == 0);
+        require(_delegate != 0);
+        require(_delegate != msg.sender);
 
         providers[msg.sender] = Provider({
             fund: msg.value,
             info: _infoId,
-            registeredAt: now
+            registeredAt: now,
+            delegate: _delegate
         });
+        delegates[_delegate] = msg.sender;
 
         Registered(msg.sender, msg.value);
+    }
+
+    function changeDelegate(address _delegate) public {
+        require(_delegate != 0);
+        require(_delegate != msg.sender);
+
+        delete delegates[providers[msg.sender].delegate];
+        providers[msg.sender].delegate = _delegate;
+        delegates[_delegate] = msg.sender;
+
+        UpdatedDelegate(msg.sender, _delegate);
     }
 
     function topup() public payable {
@@ -98,5 +116,9 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     function isProviderValid(address _provider) constant public returns (bool) {
         return minFundForProvider(_provider) <= providers[_provider].fund;
+    }
+
+    function providerAddress(address _delegate) constant public returns (address) {
+        return delegates[_delegate];
     }
 }

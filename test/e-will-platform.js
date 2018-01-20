@@ -10,6 +10,8 @@ contract('EWillPlatform', function(accounts) {
   const user  = accounts[1];
   const prov  = accounts[2];
   const benf  = accounts[3];
+  const deleg = accounts[0];
+  //todo: add tests for delegating
 
   const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
 
@@ -45,7 +47,7 @@ contract('EWillPlatform', function(accounts) {
     assert.equal(annualPlatformFee.toString(), '5', 'the contract has the wrong Annual Platform Fee');
     assert.equal(annualProviderFee.toString(), '10', 'the contract has the wrong Annual Provider Fee');
 
-    txResult = await ewEscrow.register(0x0badfeed, { from: prov, value: 80.0e+18 });
+    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov, value: 80.0e+18 });
   });
 
   it("should create a will", async () => {

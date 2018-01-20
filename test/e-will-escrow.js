@@ -6,6 +6,8 @@ contract('EWillEscrow', function(accounts) {
   const user  = accounts[1];
   const prov  = accounts[2];
   const provwl= accounts[3];
+  const deleg = accounts[0];
+  //todo: add tests for delegating
 
   let ewEscrow = null;
 
@@ -26,7 +28,7 @@ contract('EWillEscrow', function(accounts) {
 
   it("should register a provider", async () => {
     let txResult;
-    txResult = await ewEscrow.register(0xdeadbeaf, { from: prov, value: 7.0e+18 });
+    txResult = await ewEscrow.register(0xdeadbeaf, deleg, { from: prov, value: 7.0e+18 });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, prov, 'the provider is registered with the wrong address');
     assert.equal(txEvent.args.amount, 7.0e+18, 'the provider is registered with the wrong amount');
@@ -39,7 +41,7 @@ contract('EWillEscrow', function(accounts) {
     let txResult;
     txResult = await ewEscrow.addWhitelistedProvider(provwl, { from: admin });
 
-    txResult = await ewEscrow.register(0x0badfeed, { from: provwl, value: 1.0e+18 });
+    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: provwl, value: 1.0e+18 });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, provwl, 'the provider is registered with the wrong address');
     assert.equal(txEvent.args.amount, 1.0e+18, 'the provider is registered with the wrong amount');
@@ -55,6 +57,9 @@ contract('EWillEscrow', function(accounts) {
   });
 
   it("should not allow to withdraw more funds than a provider has", async () => {
+  });
+
+  it("should allow to change the delegate", async () => {
   });
 
 });
