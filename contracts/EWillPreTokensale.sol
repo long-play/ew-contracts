@@ -1,11 +1,13 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 import 'contracts/EWillToken.sol';
 
 
 contract EWillPreTokensale is Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for EWillToken;
 
     // Constants
     string constant public name = "E-Will Pre-Tokensale";
@@ -62,7 +64,7 @@ contract EWillPreTokensale is Ownable {
     function finalize(address _tokensaleContract) public onlyOwner notFinalized {
         require(endDate < now);
         uint256 tokenBalance = token.balanceOf(this);
-        token.transfer(_tokensaleContract, tokenBalance);
+        token.safeTransfer(_tokensaleContract, tokenBalance);
         finalized = true;
 
         PreTokensaleFinalized(collected);
@@ -84,7 +86,7 @@ contract EWillPreTokensale is Ownable {
         }
 
         owner.transfer(contribution);
-        token.transfer(msg.sender, allowedToBuy);
+        token.safeTransfer(msg.sender, allowedToBuy);
         collected = collected.add(allowedToBuy);
 
         NewContribution(msg.sender, allowedToBuy);

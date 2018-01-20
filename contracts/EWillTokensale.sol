@@ -1,15 +1,17 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 import 'contracts/EWillToken.sol';
 
 
 contract EWillTokensale is Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for EWillToken;
 
     // Constants
     string constant public name = "E-Will Tokensale";
-    uint256 constant public minContribution  = 1 * 1 ether;
+    uint256 constant public minContribution  = 0.1 * 1 ether;
     uint256 constant public maxContribution  = 100 * 1 ether;
 
     // State Variables
@@ -84,7 +86,7 @@ contract EWillTokensale is Ownable {
 
     function withdrawRemains() public onlyOwner isFinalized {
         require(currentRound > 4); // if the tokens were not sold during 5 rounds
-        token.transfer(msg.sender, token.balanceOf(this));
+        token.safeTransfer(msg.sender, token.balanceOf(this));
     }
 
     // Internal functions
@@ -103,7 +105,7 @@ contract EWillTokensale is Ownable {
         }
 
         owner.transfer(contribution);
-        token.transfer(msg.sender, allowedToBuy);
+        token.safeTransfer(msg.sender, allowedToBuy);
         collected = collected.add(allowedToBuy);
 
         NewContribution(msg.sender, allowedToBuy);

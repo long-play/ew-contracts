@@ -3,6 +3,7 @@ pragma solidity ^0.4.18;
 import 'zeppelin-solidity/contracts/token/DetailedERC20.sol';
 import 'zeppelin-solidity/contracts/token/StandardToken.sol';
 
+//todo: make it pausable
 
 contract EWillToken is DetailedERC20('E-Will Token', 'EWILL', 18), StandardToken {
     // Constructor
