@@ -55,6 +55,12 @@ contract EWillTokensale is Ownable {
         token = EWillToken(_token);
     }
 
+    // Configure
+    function setRate(uint256 _rate) public onlyOwner {
+        require(_rate > 0);
+        rate = _rate;
+    }
+
     // Public functions
     function scheduleTokensaleRound(uint256 _rate, uint256 _cap, uint256 _startDate, uint256 _endDate) public isFinalized {
         require(_rate > 0);

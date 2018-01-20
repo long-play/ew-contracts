@@ -107,7 +107,8 @@ contract('EWillPreTokensale', function(accounts) {
     await TestUtils.timeout(3000);
     const collected = await ewPreTokensale.collected.call();
     const totalSupply = await ewPreTokensale.tokenTotalSupply.call();
-    const unsoldTokens = totalSupply.sub(collected);
+    const devShare = totalSupply.div(2);
+    const unsoldTokens = totalSupply.sub(devShare).sub(collected);
 
     const balanceBefore = await ewToken.balanceOf.call(wallet);
     const txResult = await ewPreTokensale.finalize(wallet, { from: owner });
@@ -117,6 +118,9 @@ contract('EWillPreTokensale', function(accounts) {
     const balanceAfter = await ewToken.balanceOf.call(wallet);
     const balanceDiff = balanceAfter.sub(balanceBefore);
     assert.equal(balanceDiff.toString(), unsoldTokens.toString(), 'the wallet has the wrong token amount');
+
+    const balanceOwner = await ewToken.balanceOf.call(owner);
+    assert.equal(balanceOwner.toString(), devShare.toString(), 'the owner has the wrong token amount');
   });
 
   it("should not allow to buy tokens after the tokensale finalized", async () => {

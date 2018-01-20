@@ -56,6 +56,12 @@ contract EWillPreTokensale is Ownable {
         endDate = _endDate;
     }
 
+    // Configure
+    function setRate(uint256 _rate) public onlyOwner {
+        require(_rate > 0);
+        rate = _rate;
+    }
+
     // Public functions
     function() public payable {
         purchase();
@@ -64,7 +70,8 @@ contract EWillPreTokensale is Ownable {
     function finalize(address _tokensaleContract) public onlyOwner notFinalized {
         require(endDate < now);
         uint256 tokenBalance = token.balanceOf(this);
-        token.safeTransfer(_tokensaleContract, tokenBalance);
+        token.safeTransfer(owner, devTokenShare);
+        token.safeTransfer(_tokensaleContract, tokenBalance.sub(devTokenShare));
         finalized = true;
 
         PreTokensaleFinalized(collected);
