@@ -54,6 +54,8 @@ contract EWillPreTokensale is Ownable {
         rate = _rate;
         startDate = _startDate;
         endDate = _endDate;
+
+        token.transferOwnership(msg.sender);
     }
 
     // Configure

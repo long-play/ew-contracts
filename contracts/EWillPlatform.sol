@@ -1,11 +1,17 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillAccountIf.sol';
 import './EWillEscrowIf.sol';
+import './EWillTokenIf.sol';
 
 
 contract EWillPlatform is Ownable {
+    using SafeMath for uint256;
+    using SafeERC20 for EWillTokenIf;
+
     // Custom Types
     enum WillState { None, Created, Activated, Pending, Claimed, Declined }
 
@@ -17,6 +23,7 @@ contract EWillPlatform is Ownable {
         uint256     decryptionKey;
         address     owner;
         WillState   state;
+        bool        payWithTokens;
         uint256     createdAt;
         uint256     updatedAt;
         uint256     validTill;
@@ -36,6 +43,7 @@ contract EWillPlatform is Ownable {
 
     EWillAccountIf public accountWallet;
     EWillEscrowIf public escrowWallet;
+    EWillTokenIf public token;
 
     // Events
     event WillCreated(uint256 willId, address owner, address provider);
@@ -58,6 +66,16 @@ contract EWillPlatform is Ownable {
         _;
     }
 
+    modifier sufficientTokenAmountForCreate(address _provider) {
+        require(creatingFee(_provider) <= msg.value);
+        _;
+    }
+
+    modifier sufficientTokenAmountForProlong(uint256 _willId) {
+        require(annualFee(_willId) <= msg.value);
+        _;
+    }
+
     modifier sufficientAmountForCreate(address _provider) {
         require(creatingFee(_provider) <= msg.value);
         _;
@@ -69,10 +87,11 @@ contract EWillPlatform is Ownable {
     }
 
     // Constructor
-    function EWillPlatform(uint256 _annualFee, address _account, address _escrow) public {
+    function EWillPlatform(uint256 _annualFee, address _account, address _escrow, address _token) public {
         annualPlatformFee = _annualFee;
         accountWallet = EWillAccountIf(_account);
         escrowWallet = EWillEscrowIf(_escrow);
+        token = EWillTokenIf(_token);
     }
 
     // Configuration
@@ -109,24 +128,19 @@ contract EWillPlatform is Ownable {
         return _will.annualFee / 10;
     }
 
-    // Will
-    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable sufficientAmountForCreate(_provider) {
+    // Internal Will
+    function createWillInternal(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, bool _payWithTokens) internal {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
 
-        uint256 fee = creatingFee(_provider);
-        uint256 change = msg.value - fee;
-        if (change > 0) {
-            msg.sender.transfer(change);
-        }
-
         wills[_willId] = Will({
             willId: _willId,
             storageId: _storageId,
-            annualFee: annualProviderFee[_provider],
+            annualFee: /*todo: recalc*/annualProviderFee[_provider],
             owner: msg.sender,
             state: WillState.Created,
+            payWithTokens: _payWithTokens,
             beneficiaryHash: _beneficiaryHash,
             decryptionKey: 0,
             createdAt: now,
@@ -136,10 +150,39 @@ contract EWillPlatform is Ownable {
         });
         userWills[msg.sender].push(_willId);
 
-        accountWallet.fund.value(annualPlatformFee)(_willId);
-
         WillCreated(_willId, msg.sender, _provider);
         WillStateUpdated(_willId, msg.sender, WillState.Created);
+    }
+
+    function prolongWillInternal(uint256 _willId, bool _payWithTokens) internal {
+        Will storage will = wills[_willId];
+        require(will.state == WillState.Activated);
+        require(will.payWithTokens == _payWithTokens);
+
+        will.validTill += 1 years;
+
+        WillProlonged(_willId, will.owner, will.validTill);
+    }
+
+    // Public Will
+    function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public sufficientTokenAmountForCreate(_provider) {
+        uint256 fee = creatingFee(_provider);
+        //todo: convert to tokens
+        token.charge(msg.sender, fee);
+        token.safeTransfer(accountWallet, annualPlatformFee);
+
+        createWillInternal(_willId, _storageId, _beneficiaryHash, _provider, true);
+    }
+
+    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable sufficientAmountForCreate(_provider) {
+        uint256 fee = creatingFee(_provider);
+        uint256 change = msg.value - fee;
+        if (change > 0) {
+            msg.sender.transfer(change);
+        }
+
+        accountWallet.fund.value(annualPlatformFee)(_willId);
+        createWillInternal(_willId, _storageId, _beneficiaryHash, _provider, false);
     }
 
     function activateWill(uint256 _willId) public onlyProvider(_willId) {
@@ -179,15 +222,24 @@ contract EWillPlatform is Ownable {
         WillProlonged(_willId, will.owner, will.validTill);
     }
 
-    function prolongWill(uint256 _willId) public payable sufficientAmountForProlong(_willId) {
-        Will storage will = wills[_willId];
-        require(will.state == WillState.Activated);
+    function prolongWillWithTokens(uint256 _willId) public sufficientTokenAmountForProlong(_willId) {
+        uint256 fee = annualFee(_willId);
+        //todo: convert to tokens
+        token.charge(msg.sender, fee);
+        token.safeTransfer(accountWallet, annualPlatformFee);
 
-        will.validTill += 1 years;
+        prolongWillInternal(_willId, true);
+    }
+
+    function prolongWill(uint256 _willId) public payable sufficientAmountForProlong(_willId) {
+        uint256 fee = annualFee(_willId);
+        uint256 change = msg.value - fee;
+        if (change > 0) {
+            msg.sender.transfer(change);
+        }
 
         accountWallet.fund.value(annualPlatformFee)(_willId);
-
-        WillProlonged(_willId, will.owner, will.validTill);
+        prolongWillInternal(_willId, false);
     }
 
     function applyWill(uint256 _willId, uint256 _decryptionKey) public onlyProvider(_willId) {

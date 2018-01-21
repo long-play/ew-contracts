@@ -1,3 +1,4 @@
+const EWillToken = artifacts.require("EWillToken");
 const EWillEscrow = artifacts.require("EWillEscrow");
 const EWillAccount = artifacts.require("EWillAccount");
 const EWillPlatform = artifacts.require("EWillPlatform");
@@ -14,6 +15,7 @@ contract('EWillPlatform', function(accounts) {
   //todo: add tests for delegating
 
   const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
+  const ewTokenSupply = 100000;
 
   const WillState = {
     None: 0,
@@ -27,11 +29,13 @@ contract('EWillPlatform', function(accounts) {
   let ewPlatform = null;
   let ewAccount = null;
   let ewEscrow = null;
+  let ewToken = null;
 
   it("should have a correct name", async () => {
+    ewToken = await EWillToken.new(ewTokenSupply);
     ewEscrow = await EWillEscrow.new(70);
     ewAccount = await EWillAccount.new(1000, admin);
-    ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address);
+    ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address, ewToken.address);
 
     const name = await ewPlatform.name.call();
     assert.equal(name, 'E-Will Platform', 'the contract has the wrong name');
