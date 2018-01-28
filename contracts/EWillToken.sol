@@ -11,7 +11,7 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
     address public platform;
 
     // Events
-    event Charged(address payer, uint256 amount);
+    event Charged(address merchant, address payer, uint256 amount, bytes32 note);
 
     // Modifiers
     modifier onlyPlatform() {
@@ -31,12 +31,12 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
     }
 
     // EWillTokenIf
-    function charge(address _payer, uint256 _amount) public onlyPlatform {
+    function charge(address _payer, uint256 _amount, bytes32 _note) public onlyPlatform {
         require(_amount <= balances[_payer]);
 
         balances[_payer] = balances[_payer].sub(_amount);
         balances[msg.sender] = balances[msg.sender].add(_amount);
 
-        Charged(_payer, _amount);
+        Charged(msg.sender, _payer, _amount, _note);
     }
 }

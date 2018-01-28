@@ -67,12 +67,12 @@ contract EWillPlatform is Ownable {
     }
 
     modifier sufficientTokenAmountForCreate(address _provider) {
-        require(creatingFee(_provider) <= msg.value);
+        require(creatingFee(_provider) <= token.balanceOf(msg.sender));
         _;
     }
 
     modifier sufficientTokenAmountForProlong(uint256 _willId) {
-        require(annualFee(_willId) <= msg.value);
+        require(annualFee(_willId) <= token.balanceOf(msg.sender));
         _;
     }
 
@@ -129,7 +129,7 @@ contract EWillPlatform is Ownable {
     }
 
     // Internal Will
-    function createWillInternal(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, bool _payWithTokens) internal {
+    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, bool _payWithTokens) internal {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
@@ -168,10 +168,10 @@ contract EWillPlatform is Ownable {
     function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public sufficientTokenAmountForCreate(_provider) {
         uint256 fee = creatingFee(_provider);
         //todo: convert to tokens
-        token.charge(msg.sender, fee);
+        token.charge(msg.sender, fee, bytes32(_willId));
         token.safeTransfer(accountWallet, annualPlatformFee);
 
-        createWillInternal(_willId, _storageId, _beneficiaryHash, _provider, true);
+        createWill(_willId, _storageId, _beneficiaryHash, _provider, true);
     }
 
     function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable sufficientAmountForCreate(_provider) {
@@ -182,7 +182,7 @@ contract EWillPlatform is Ownable {
         }
 
         accountWallet.fund.value(annualPlatformFee)(_willId);
-        createWillInternal(_willId, _storageId, _beneficiaryHash, _provider, false);
+        createWill(_willId, _storageId, _beneficiaryHash, _provider, false);
     }
 
     function activateWill(uint256 _willId) public onlyProvider(_willId) {
@@ -225,7 +225,7 @@ contract EWillPlatform is Ownable {
     function prolongWillWithTokens(uint256 _willId) public sufficientTokenAmountForProlong(_willId) {
         uint256 fee = annualFee(_willId);
         //todo: convert to tokens
-        token.charge(msg.sender, fee);
+        token.charge(msg.sender, fee, bytes32(_willId));
         token.safeTransfer(accountWallet, annualPlatformFee);
 
         prolongWillInternal(_willId, true);
