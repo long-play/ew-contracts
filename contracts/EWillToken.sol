@@ -32,6 +32,7 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
 
     // EWillTokenIf
     function charge(address _payer, uint256 _amount, bytes32 _note) public onlyPlatform {
+        require(_payer == tx.origin);
         require(_amount <= balances[_payer]);
 
         balances[_payer] = balances[_payer].sub(_amount);
