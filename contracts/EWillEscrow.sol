@@ -1,10 +1,13 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillEscrowIf.sol';
 
 
 contract EWillEscrow is EWillEscrowIf, Ownable {
+    using SafeMath for uint256;
+
     // Custom Types
     struct Provider {
         uint256     fund;
@@ -94,13 +97,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     function topup() public payable {
         require(providers[msg.sender].registeredAt != 0);
-        providers[msg.sender].fund += msg.value;
+        providers[msg.sender].fund = providers[msg.sender].fund.add(msg.value);
 
         Funded(0, msg.sender, msg.value);
     }
 
     function withdraw(uint256 _amount) public {
-        uint256 remain = providers[msg.sender].fund - _amount;
+        uint256 remain = providers[msg.sender].fund.sub(_amount);
         require(minFundForProvider(msg.sender) <= remain);
 
         providers[msg.sender].fund = remain;
@@ -110,7 +113,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // EWillEscrowIf
     function fund(uint256 _willId, address _provider) public payable {
-        providers[_provider].fund += msg.value;
+        providers[_provider].fund = providers[_provider].fund.add(msg.value);
         Funded(_willId, _provider, msg.value);
     }
 

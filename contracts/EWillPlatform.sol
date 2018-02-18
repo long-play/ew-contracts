@@ -15,6 +15,8 @@ contract EWillPlatform is Ownable {
     // Custom Types
     enum WillState { None, Created, Activated, Pending, Claimed, Declined }
 
+//    enum PaymentType { Ether, Token, SwitchingT2E }
+
     struct Will {
         uint256     willId;
         uint256     storageId;
@@ -30,6 +32,11 @@ contract EWillPlatform is Ownable {
         address     provider;
     }
 
+//    struct TempFee {
+//        uint256     annualFee;
+//        uint256     validTill;
+//    }
+
     // Constants
     string constant public name = 'E-Will Platform';
 
@@ -41,6 +48,8 @@ contract EWillPlatform is Ownable {
     mapping (uint256 => Will) public wills;
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
+
+//    mapping (uint256 => TempFee) temporaryAnnualProviderFee;
 
     EWillAccountIf public accountWallet;
     EWillEscrowIf public escrowWallet;
@@ -179,6 +188,14 @@ contract EWillPlatform is Ownable {
     }
 
     // Public Will
+    function numberOfUserWills(address _user) public view returns(uint256) {
+        return userWills[_user].length;
+    }
+
+    function numberOfBeneficiaryWills(address _beneficiary) public view returns(uint256) {
+        return beneficiaryWills[uint256(keccak256(_beneficiary))].length;
+    }
+
     function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public sufficientTokenAmountForCreate(_provider) {
         uint256 fee = creatingFee(_provider, true);
         token.charge(msg.sender, fee, bytes32(_willId));
