@@ -12,12 +12,19 @@ contract EWillAccount is EWillAccountIf, Ownable {
     address public accounter;       // the address for operational expenses
     uint256 public lastPayout;      // the last time the accounter was paid
     uint256 public minLockedFund;   // min amount of tokens for parking
+    mapping (address => bool) kyc;  // known customers
 
     // Events
     event Parked(address holder, uint256 amount);
     event Unparked(address holder, uint256 amount);
     event Rewarded(address holder, uint256 amount);
     event Withdrew(uint256 amount);
+
+    // Modifiers
+    modifier onlyVerifiedCustomer() {
+        require(kyc[msg.sender] == true);
+        _;
+    }
 
     // Constructor
     function EWillAccount(uint256 _minFund, address _accounter) public {
@@ -35,9 +42,18 @@ contract EWillAccount is EWillAccountIf, Ownable {
         minLockedFund = _minFund * 1 ether;
     }
 
+    // KYC
+    function addVerifiedCustomer(address _customer) public onlyOwner {
+        kyc[_customer] = true;
+    }
+
+    function deleteVerifiedCustomer(address _customer) public onlyOwner {
+        kyc[_customer] = false;
+    }
+
     // Accounting
     function payOperationalExpenses(uint256 _amount) public onlyOwner {
-        require(now - lastPayout >= 28 days); // don't allow to payout to often
+        require(now - lastPayout >= 28 days); // don't allow to payout too often
         require(_amount <= this.balance / 2);  // don't allow to withdraw more than a half of entire fund
 
         lastPayout = now;
@@ -46,7 +62,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // Fund parking
-    function park(uint256 _amount) public {
+    function park(uint256 _amount) public onlyVerifiedCustomer {
         require(_amount >= minLockedFund);
 
         //todo: park tokens to get rewarded
