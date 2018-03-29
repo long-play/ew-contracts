@@ -15,6 +15,7 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
 
     // Modifiers
     modifier onlyPlatform() {
+        //todo: onlyMerchant and there are many merchants
         require(platform == msg.sender);
         _;
     }

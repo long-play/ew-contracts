@@ -69,6 +69,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // Escrow
     function register(uint256 _infoId, address _delegate) public payable sufficientFund(msg.sender, msg.value) {
+        //todo: replace ethers with tokens
         require(providers[msg.sender].registeredAt == 0);
         require(_delegate != 0);
         require(_delegate != msg.sender);
@@ -113,9 +114,9 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // EWillEscrowIf
     //todo: fund with tokens
-    function fund(uint256 _willId, address _provider) public payable {
-        providers[_provider].fund = providers[_provider].fund.add(msg.value);
-        Funded(_willId, _provider, msg.value);
+    function fund(uint256 _willId, address _provider, uint256 _amount) public payable {
+        providers[_provider].fund = providers[_provider].fund.add(_amount);
+        Funded(_willId, _provider, _amount);
     }
 
     function isProviderValid(address _provider) constant public returns (bool) {
