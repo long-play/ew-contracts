@@ -8,15 +8,14 @@ import 'zeppelin-solidity/contracts/token/StandardToken.sol';
 
 contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 'EWILL', 18), StandardToken {
     // State Variables
-    address public platform;
+    mapping (address => uint256)  public merchants;
 
     // Events
     event Charged(address merchant, address payer, uint256 amount, bytes32 note);
 
     // Modifiers
-    modifier onlyPlatform() {
-        //todo: onlyMerchant and there are many merchants
-        require(platform == msg.sender);
+    modifier onlyMerchant() {
+        require(merchants[msg.sender] != 0);
         _;
     }
 
@@ -27,12 +26,16 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
     }
 
     // Configuration
-    function setPlatformAddress(address _platform) public onlyOwner {
-        platform = _platform;
+    function addMerchant(address _merchant) public onlyOwner {
+        merchants[_merchant] = now;
+    }
+
+    function deleteMerchant(address _merchant) public onlyOwner {
+        delete merchants[_merchant];
     }
 
     // EWillTokenIf
-    function charge(address _payer, uint256 _amount, bytes32 _note) public onlyPlatform {
+    function charge(address _payer, uint256 _amount, bytes32 _note) public onlyMerchant {
         require(_payer == tx.origin);
         require(_amount <= balances[_payer]);
 
