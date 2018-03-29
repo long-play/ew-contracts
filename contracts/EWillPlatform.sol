@@ -15,27 +15,20 @@ contract EWillPlatform is Ownable {
     // Custom Types
     enum WillState { None, Created, Activated, Pending, Claimed, Declined }
 
-//    enum PaymentType { Ether, Token, SwitchingT2E }
-
     struct Will {
         uint256     willId;
         uint256     storageId;
         uint256     annualFee;
+        uint256     newFee;
         uint256     beneficiaryHash;
         uint256     decryptionKey;
         address     owner;
         WillState   state;
-        bool        payWithTokens;
         uint256     createdAt;
         uint256     updatedAt;
         uint256     validTill;
         address     provider;
     }
-
-//    struct TempFee {
-//        uint256     annualFee;
-//        uint256     validTill;
-//    }
 
     // Constants
     string constant public name = 'E-Will Platform';
@@ -44,12 +37,12 @@ contract EWillPlatform is Ownable {
     uint256 public annualPlatformFee;                       // annual platform fee in weis
     mapping (address => uint256) public annualProviderFee;  // annual provider fee in weis
     uint256 public tokenRate;                               // exchange rate, weis per token
+    uint256 public rateEther;                               // exchange rate, weis per dollar
+    uint256 public rateToken;                               // exchange rate, tokenweis per dollar
 
     mapping (uint256 => Will) public wills;
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
-
-//    mapping (uint256 => TempFee) temporaryAnnualProviderFee;
 
     EWillAccountIf public accountWallet;
     EWillEscrowIf public escrowWallet;
@@ -76,26 +69,6 @@ contract EWillPlatform is Ownable {
         _;
     }
 
-    modifier sufficientTokenAmountForCreate(address _provider) {
-        require(creatingFee(_provider, true) <= token.balanceOf(msg.sender));
-        _;
-    }
-
-    modifier sufficientTokenAmountForProlong(uint256 _willId) {
-        require(annualFee(_willId, true) <= token.balanceOf(msg.sender));
-        _;
-    }
-
-    modifier sufficientAmountForCreate(address _provider) {
-        require(creatingFee(_provider) <= msg.value);
-        _;
-    }
-
-    modifier sufficientAmountForProlong(uint256 _willId) {
-        require(annualFee(_willId) <= msg.value);
-        _;
-    }
-
     // Constructor
     function EWillPlatform(uint256 _annualFee, address _account, address _escrow, address _token) public {
         annualPlatformFee = _annualFee;
@@ -113,7 +86,7 @@ contract EWillPlatform is Ownable {
         annualProviderFee[msg.sender] = _fee;
     }
 
-    // Finance
+    // Finance calculations
     function creatingFee(address _provider) public constant returns (uint256) {
         return creatingFee(_provider, false);
     }
@@ -146,24 +119,25 @@ contract EWillPlatform is Ownable {
         return _will.annualFee / 10;
     }
 
+    // Finance operations
+    function exchangeTokens(uint256 _amount) public {
+        //todo: charge the tokens and return ethers with 1% fee
+    }
+
     // Internal Will
-    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, bool _payWithTokens) internal {
+    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) internal {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
 
-        uint256 fee = annualProviderFee[_provider];
-        if (_payWithTokens) {
-            fee = fee.mul(1 ether).div(tokenRate);
-        }
-
+        uint256 fee = annualProviderFee[_provider].mul(rateToken);
         wills[_willId] = Will({
             willId: _willId,
             storageId: _storageId,
             annualFee: fee,
+            newFee: 0,
             owner: msg.sender,
             state: WillState.Created,
-            payWithTokens: _payWithTokens,
             beneficiaryHash: _beneficiaryHash,
             decryptionKey: 0,
             createdAt: now,
@@ -177,11 +151,12 @@ contract EWillPlatform is Ownable {
         WillStateUpdated(_willId, msg.sender, WillState.Created);
     }
 
-    function prolongWillInternal(uint256 _willId, bool _payWithTokens) internal {
+    function prolongWill(uint256 _willId) internal {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
-        require(will.payWithTokens == _payWithTokens);
+        require(will.validTill > now + 30 days);
 
+        will.newFee = annualProviderFee[will.provider].mul(rateToken);
         will.validTill += 1 years;
 
         WillProlonged(_willId, will.owner, will.validTill);
@@ -196,24 +171,31 @@ contract EWillPlatform is Ownable {
         return beneficiaryWills[uint256(keccak256(_beneficiary))].length;
     }
 
-    function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public sufficientTokenAmountForCreate(_provider) {
+    function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public {
         uint256 fee = creatingFee(_provider, true);
-        token.charge(msg.sender, fee, bytes32(_willId));
-        token.safeTransfer(accountWallet, annualPlatformFee.mul(1 ether).div(tokenRate));
-        //todo: tokens accountWallet.fund(_willId);
+        require(fee <= token.balanceOf(msg.sender));
 
-        createWill(_willId, _storageId, _beneficiaryHash, _provider, true);
+        token.charge(msg.sender, fee, bytes32(_willId));
+        //todo: correct the rate - token.safeTransfer(accountWallet, annualPlatformFee.mul(1 ether).div(tokenRate));
+        //todo: tokens - accountWallet.fund(_willId);
+
+        createWill(_willId, _storageId, _beneficiaryHash, _provider);
     }
 
-    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable sufficientAmountForCreate(_provider) {
-        uint256 fee = creatingFee(_provider);
-        uint256 change = msg.value - fee;
+    function createWillWithEther(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable {
+        uint256 fee = creatingFee(_provider, false);
+        require(fee <= msg.value);
+
+        uint256 change = msg.value.sub(fee);
         if (change > 0) {
             msg.sender.transfer(change);
         }
 
-        accountWallet.fund.value(annualPlatformFee)(_willId);
-        createWill(_willId, _storageId, _beneficiaryHash, _provider, false);
+        //do not transfer any ether, pay in tokens. accountWallet.fund.value(annualPlatformFee)(_willId);
+        //todo: correct the rate - token.safeTransfer(accountWallet, annualPlatformFee.mul(1 ether).div(tokenRate));
+        //todo: tokens - accountWallet.fund(_willId);
+
+        createWill(_willId, _storageId, _beneficiaryHash, _provider);
     }
 
     function activateWill(uint256 _willId) public onlyProvider(_willId) {
@@ -224,11 +206,14 @@ contract EWillPlatform is Ownable {
         will.updatedAt = now;
         will.validTill = now + 1 years;
 
+/*
+        todo:
         if (will.payWithTokens) {
             token.safeTransfer(will.provider, activationReward(will));
         } else {
             escrowWallet.fund.value(activationReward(will))(_willId, will.provider);
         }
+*/
 
         WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -236,15 +221,24 @@ contract EWillPlatform is Ownable {
     function refreshWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
-        require(will.updatedAt + 28 days < now);
+        //todo: how to calc over the year
+        require(will.updatedAt + 30 days < now);
 
         will.updatedAt = now;
 
+        if (will.newFee > 0) {
+            will.annualFee = will.newFee;
+            will.newFee = 0;
+        }
+
+        //todo: transfer tokens to escrow
+/*
         if (will.payWithTokens) {
             token.safeTransfer(will.provider, refreshReward(will));
         } else {
             escrowWallet.fund.value(refreshReward(will))(_willId, will.provider);
         }
+*/
 
         WillRefreshed(_willId, will.owner);
     }
@@ -261,24 +255,31 @@ contract EWillPlatform is Ownable {
         WillProlonged(_willId, will.owner, will.validTill);
     }
 
-    function prolongWillWithTokens(uint256 _willId) public sufficientTokenAmountForProlong(_willId) {
+    function prolongWillWithTokens(uint256 _willId) public {
         uint256 fee = annualFee(_willId, true);
-        token.charge(msg.sender, fee, bytes32(_willId));
-        token.safeTransfer(accountWallet, annualPlatformFee.mul(1 ether).div(tokenRate));
-        //todo: tokens accountWallet.fund(_willId);
+        require(fee <= token.balanceOf(msg.sender));
 
-        prolongWillInternal(_willId, true);
+        token.charge(msg.sender, fee, bytes32(_willId));
+        //todo: correct the rate - token.safeTransfer(accountWallet, annualPlatformFee.mul(1 ether).div(tokenRate));
+        //todo: tokens - accountWallet.fund(_willId);
+
+        prolongWill(_willId);
     }
 
-    function prolongWill(uint256 _willId) public payable sufficientAmountForProlong(_willId) {
+    function prolongWillWithEther(uint256 _willId) public payable {
         uint256 fee = annualFee(_willId);
-        uint256 change = msg.value - fee;
+        require(fee <= msg.value);
+
+        uint256 change = msg.value.sub(fee);
         if (change > 0) {
             msg.sender.transfer(change);
         }
 
-        accountWallet.fund.value(annualPlatformFee)(_willId);
-        prolongWillInternal(_willId, false);
+        //do not transfer any ether, pay in tokens. accountWallet.fund.value(annualPlatformFee)(_willId);
+        //todo: correct the rate - token.safeTransfer(accountWallet, annualPlatformFee.mul(1 ether).div(tokenRate));
+        //todo: tokens - accountWallet.fund(_willId);
+
+        prolongWill(_willId);
     }
 
     function applyWill(uint256 _willId, uint256 _decryptionKey) public onlyProvider(_willId) {
@@ -289,6 +290,8 @@ contract EWillPlatform is Ownable {
         will.state = WillState.Pending;
         will.updatedAt = now;
         beneficiaryWills[will.beneficiaryHash].push(_willId);
+
+        //todo: send a small amount of ethers to the beneficiary
 
         WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -301,11 +304,14 @@ contract EWillPlatform is Ownable {
         will.state = WillState.Claimed;
 
         //todo: return unspent funds to the beneficiary
+/*
+        todo:
         if (will.payWithTokens) {
             token.safeTransfer(will.provider, claimReward(will));
         } else {
             escrowWallet.fund.value(claimReward(will))(_willId, will.provider);
         }
+*/
 
         WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -320,16 +326,4 @@ contract EWillPlatform is Ownable {
 
         WillStateUpdated(_willId, will.owner, will.state);
     }
-
-/*
-    function switchFeeToEther(uint256 _willId) public {
-        //todo: how to pay reward???
-        Will storage will = wills[_willId];
-        require(will.state == WillState.Activated);
-        require(will.payWithTokens);
-
-        will.payWithTokens = false;
-        will.annualFee = annualProviderFee[will.provider];
-    }
-*/
 }

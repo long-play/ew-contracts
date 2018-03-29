@@ -112,6 +112,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // EWillEscrowIf
+    //todo: fund with tokens
     function fund(uint256 _willId, address _provider) public payable {
         providers[_provider].fund = providers[_provider].fund.add(msg.value);
         Funded(_willId, _provider, msg.value);
