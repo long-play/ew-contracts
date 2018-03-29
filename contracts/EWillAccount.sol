@@ -1,10 +1,16 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillAccountIf.sol';
+import './EWillTokenIf.sol';
 
 
 contract EWillAccount is EWillAccountIf, Ownable {
+    using SafeMath for uint256;
+    using SafeERC20 for EWillTokenIf;
+
     // Constants
     string constant public name = 'E-Will Account';
 
@@ -12,6 +18,8 @@ contract EWillAccount is EWillAccountIf, Ownable {
     address public accounter;       // the address for operational expenses
     uint256 public lastPayout;      // the last time the accounter was paid
     uint256 public minLockedFund;   // min amount of tokens for parking
+    address public platform;        // platform address
+    EWillTokenIf public token;      // token interface
     mapping (address => bool) kyc;  // known customers
 
     // Events
@@ -21,6 +29,11 @@ contract EWillAccount is EWillAccountIf, Ownable {
     event Withdrew(uint256 amount);
 
     // Modifiers
+    modifier onlyPlatform {
+        require(msg.sender == platform);
+        _;
+    }
+
     modifier onlyVerifiedCustomer() {
         require(kyc[msg.sender] == true);
         _;
@@ -53,7 +66,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
 
     // Accounting
     function payOperationalExpenses(uint256 _amount) public onlyOwner {
-        require(now - lastPayout >= 28 days); // don't allow to payout too often
+        require(now - lastPayout >= 30 days); // don't allow to payout too often
         require(_amount <= this.balance / 2);  // don't allow to withdraw more than a half of entire fund
 
         lastPayout = now;
@@ -86,7 +99,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // EWillAccountIf
-    function fund(uint256 _willId) public payable {
-        Funded(_willId, msg.value);
+    function fund(uint256 _willId, uint256 _amount) public onlyPlatform {
+        Funded(_willId, _amount);
     }
 }

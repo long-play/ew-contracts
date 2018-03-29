@@ -123,7 +123,7 @@ contract EWillPlatform is Ownable {
 
         // transfer commission to the account wallet
         token.safeTransfer(accountWallet, annualPlatformFee.mul(rateToken));
-        accountWallet.fund(_willId);
+        accountWallet.fund(_willId, annualPlatformFee.mul(rateToken));
 
         // create the will
         wills[_willId] = Will({
@@ -154,7 +154,7 @@ contract EWillPlatform is Ownable {
 
         // transfer commission to the account wallet
         token.safeTransfer(accountWallet, annualPlatformFee.mul(rateToken));
-        accountWallet.fund(_willId);
+        accountWallet.fund(_willId, annualPlatformFee.mul(rateToken));
 
         // update the will
         will.newFee = annualProviderFee[will.provider].mul(rateToken);
@@ -201,7 +201,7 @@ contract EWillPlatform is Ownable {
         will.updatedAt = now;
         will.validTill = now + 1 years;
 
-        token.safeTransfer(will.provider, activationReward(will));
+        token.safeTransfer(escrowWallet, activationReward(will));
         escrowWallet.fund(_willId, will.provider, activationReward(will));
 
         WillStateUpdated(_willId, will.owner, will.state);
@@ -220,7 +220,7 @@ contract EWillPlatform is Ownable {
             will.newFee = 0;
         }
 
-        token.safeTransfer(will.provider, refreshReward(will));
+        token.safeTransfer(escrowWallet, refreshReward(will));
         escrowWallet.fund(_willId, will.provider, refreshReward(will));
 
         WillRefreshed(_willId, will.owner);
@@ -267,7 +267,7 @@ contract EWillPlatform is Ownable {
 
         will.state = WillState.Claimed;
 
-        token.safeTransfer(will.provider, claimReward(will));
+        token.safeTransfer(escrowWallet, claimReward(will));
         escrowWallet.fund(_willId, will.provider, claimReward(will));
 
         WillStateUpdated(_willId, will.owner, will.state);

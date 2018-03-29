@@ -1,12 +1,15 @@
 pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillEscrowIf.sol';
+import './EWillTokenIf.sol';
 
 
 contract EWillEscrow is EWillEscrowIf, Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for EWillTokenIf;
 
     // Custom Types
     struct Provider {
@@ -20,20 +23,22 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     string constant public name = 'E-Will Escrow';
 
     // State Variables
-    uint256 public minProviderFund; // the minimum provider's fund in weis
+    uint256 public minProviderFund; // the minimum provider's fund in tokens
+    address public platform;        // platform address
+    EWillTokenIf public token;      // token interface
 
     mapping (address => Provider) public providers;
     mapping (address => address) public delegates;
     mapping (address => bool) public whitelisted;
 
     // Events
-    event Registered(address provider, uint256 amount);
+    event Registered(address provider);
     event UpdatedDelegate(address provider, address delegate);
     event Withdrew(address provider, uint256 amount);
 
     // Modifiers
-    modifier sufficientFund(address _provider, uint256 _fund) {
-        require(minFundForProvider(_provider) <= _fund);
+    modifier onlyPlatform {
+        require(msg.sender == platform);
         _;
     }
 
@@ -43,6 +48,10 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Configuration
+    function setPlatformAddress(address _platform) public onlyOwner {
+        platform = _platform;
+    }
+
     function setMinFund(uint256 _minFund) public onlyOwner {
         minProviderFund = _minFund * 1 ether;
     }
@@ -68,21 +77,23 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Escrow
-    function register(uint256 _infoId, address _delegate) public payable sufficientFund(msg.sender, msg.value) {
-        //todo: replace ethers with tokens
+    function register(uint256 _infoId, address _delegate) public {
         require(providers[msg.sender].registeredAt == 0);
         require(_delegate != 0);
         require(_delegate != msg.sender);
 
+        uint256 fund = minFundForProvider(msg.sender);
+        token.charge(msg.sender, fund, bytes32('escrow_registration_deposit'));
+
         providers[msg.sender] = Provider({
-            fund: msg.value,
+            fund: fund,
             info: _infoId,
             registeredAt: now,
             delegate: _delegate
         });
         delegates[_delegate] = msg.sender;
 
-        Registered(msg.sender, msg.value);
+        Registered(msg.sender);
     }
 
     function changeDelegate(address _delegate) public {
@@ -96,11 +107,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         UpdatedDelegate(msg.sender, _delegate);
     }
 
-    function topup() public payable {
+    function topup(uint256 _amount) public {
         require(providers[msg.sender].registeredAt != 0);
-        providers[msg.sender].fund = providers[msg.sender].fund.add(msg.value);
 
-        Funded(0, msg.sender, msg.value);
+        token.charge(msg.sender, _amount, bytes32('escrow_deposit_topup'));
+        providers[msg.sender].fund = providers[msg.sender].fund.add(_amount);
+
+        Funded(0, msg.sender, _amount);
     }
 
     function withdraw(uint256 _amount) public {
@@ -108,13 +121,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         require(minFundForProvider(msg.sender) <= remain);
 
         providers[msg.sender].fund = remain;
-        msg.sender.transfer(_amount);
+        token.safeTransfer(msg.sender, _amount);
+
         Withdrew(msg.sender, _amount);
     }
 
     // EWillEscrowIf
-    //todo: fund with tokens
-    function fund(uint256 _willId, address _provider, uint256 _amount) public payable {
+    function fund(uint256 _willId, address _provider, uint256 _amount) public onlyPlatform {
         providers[_provider].fund = providers[_provider].fund.add(_amount);
         Funded(_willId, _provider, _amount);
     }
