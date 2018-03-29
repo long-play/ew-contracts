@@ -38,6 +38,7 @@ contract EWillPlatform is Ownable {
     mapping (address => uint256) public annualProviderFee;  // annual provider fee in dollars
     uint256 public rateEther;                               // exchange rate, weis per dollar
     uint256 public rateToken;                               // exchange rate, tokenweis per dollar
+    uint256 public exchangeFee;                             // exchanging token->ether fee in percent
 
     mapping (uint256 => Will) public wills;
     mapping (address => uint256[]) public userWills;
@@ -46,15 +47,20 @@ contract EWillPlatform is Ownable {
     EWillAccountIf public accountWallet;
     EWillEscrowIf public escrowWallet;
     EWillTokenIf public token;
+    address public oracle;
 
     // Events
     event WillCreated(uint256 willId, address owner, address provider);
     event WillStateUpdated(uint256 willId, address owner, WillState newState);
     event WillRefreshed(uint256 willId, address owner);
     event WillProlonged(uint256 willId, address owner, uint256 validTill);
-    event WillAnnualFeeDecreased(uint256 willId, uint256 newAnnualFee);
 
     // Modifiers
+    modifier onlyOracle {
+        require(msg.sender == oracle);
+        _;
+    }
+
     modifier onlyWillOwner(uint256 _willId) {
         Will storage will = wills[_willId];
         require(will.owner == msg.sender);
@@ -74,9 +80,25 @@ contract EWillPlatform is Ownable {
         accountWallet = EWillAccountIf(_account);
         escrowWallet = EWillEscrowIf(_escrow);
         token = EWillTokenIf(_token);
+        oracle = owner;
     }
 
     // Configuration
+    function setOracle(address _oracle) public onlyOwner {
+        oracle = _oracle;
+    }
+
+    function setExchangeRates(uint256 _token, uint256 _ether) public onlyOracle {
+        rateToken = _token;
+        rateEther = _ether;
+    }
+
+    function setExchangeFee(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100);
+        exchangeFee = _percent;
+    }
+
     function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
         annualPlatformFee = _fee;
     }
@@ -112,7 +134,12 @@ contract EWillPlatform is Ownable {
 
     // Finance operations
     function exchangeTokens(uint256 _amount) public {
-        //todo: charge the tokens and return ethers with 1% fee
+        require(token.balanceOf(this).add(_amount).mul(20) < token.totalSupply()); // if contract has less than 5% of total supply
+
+        uint256 amount = _amount.mul(100 - exchangeFee).div(100);
+        uint256 payout = amount.mul(rateEther).div(rateToken);
+        token.charge(msg.sender, _amount, bytes32('token_exchange'));
+        msg.sender.transfer(payout);
     }
 
     // Internal Will
