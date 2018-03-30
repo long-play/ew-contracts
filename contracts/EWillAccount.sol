@@ -11,13 +11,21 @@ contract EWillAccount is EWillAccountIf, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for EWillTokenIf;
 
+    // Custom Types
+    struct TokenHolder {
+        uint256     amount;
+        bool        verified;
+    }
+
     // Constants
     string constant public name = 'E-Will Account';
 
     // State Variables
-    address public accounter;       // the address for operational expenses
+    uint256 public income;          // the income of the platform
     uint256 public lastPayout;      // the last time the accounter was paid
     uint256 public minLockedFund;   // min amount of tokens for parking
+
+    address public accounter;       // the address for operational expenses
     address public platform;        // platform address
     EWillTokenIf public token;      // token interface
     mapping (address => bool) kyc;  // known customers
@@ -44,6 +52,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
         minLockedFund = _minFund * 1 ether;
         accounter = _accounter;
         lastPayout = 0;
+        income = 0;
     }
 
     // Configuration
@@ -67,10 +76,11 @@ contract EWillAccount is EWillAccountIf, Ownable {
     // Accounting
     function payOperationalExpenses(uint256 _amount) public onlyOwner {
         require(now - lastPayout >= 30 days); // don't allow to payout too often
-        require(_amount <= this.balance / 2);  // don't allow to withdraw more than a half of entire fund
+        require(_amount <= income / 2);  // don't allow to withdraw more than a half of entire fund
 
         lastPayout = now;
-        accounter.transfer(_amount);
+        income = income.sub(_amount);
+        token.safeTransfer(accounter, _amount);
         Withdrew(_amount);
     }
 
@@ -78,6 +88,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     function park(uint256 _amount) public onlyVerifiedCustomer {
         require(_amount >= minLockedFund);
 
+        token.charge(msg.sender, _amount, bytes32('parking'));
         //todo: park tokens to get rewarded
         require(false);
 
@@ -100,6 +111,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
 
     // EWillAccountIf
     function fund(uint256 _willId, uint256 _amount) public onlyPlatform {
+        income = income.add(_amount);
         Funded(_willId, _amount);
     }
 }
