@@ -14,6 +14,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     // Custom Types
     struct TokenHolder {
         uint256     amount;
+        uint256     rewardedAt;
         bool        verified;
     }
 
@@ -21,14 +22,20 @@ contract EWillAccount is EWillAccountIf, Ownable {
     string constant public name = 'E-Will Account';
 
     // State Variables
-    uint256 public income;          // the income of the platform
-    uint256 public lastPayout;      // the last time the accounter was paid
-    uint256 public minLockedFund;   // min amount of tokens for parking
+    uint256 public income;                          // the income of the platform
+    uint256 public lastPayout;                      // the last time the payout happened at
+    uint256 public minParkingAmount;                // min amount of tokens for parking
+    uint256 public parkedFund;                      // amount of parked tokens
 
-    address public accounter;       // the address for operational expenses
-    address public platform;        // platform address
-    EWillTokenIf public token;      // token interface
-    mapping (address => bool) kyc;  // known customers
+    uint256 lastPayoutBlockNumber;                  // the last block the payout happened at
+    uint256 rewardPaid;                             // paid reward in the current payout
+    uint256 rewardToDistribute;                     // reward to pay in the current payout
+    uint256 parkedFundCap;                          // amount of parked tokens at the beginning of the current payout
+
+    address public accounter;                       // the address for operational expenses
+    address public platform;                        // platform address
+    EWillTokenIf public token;                      // token interface
+    mapping (address => TokenHolder) tokenHolders;  // registered token holders
 
     // Events
     event Parked(address holder, uint256 amount);
@@ -42,14 +49,14 @@ contract EWillAccount is EWillAccountIf, Ownable {
         _;
     }
 
-    modifier onlyVerifiedCustomer() {
-        require(kyc[msg.sender] == true);
+    modifier onlyVerifiedHolders() {
+        require(tokenHolders[msg.sender].verified == true);
         _;
     }
 
     // Constructor
-    function EWillAccount(uint256 _minFund, address _accounter) public {
-        minLockedFund = _minFund * 1 ether;
+    function EWillAccount(uint256 _minParkingAmount, address _accounter) public {
+        minParkingAmount = _minParkingAmount * 1 ether;
         accounter = _accounter;
         lastPayout = 0;
         income = 0;
@@ -60,17 +67,25 @@ contract EWillAccount is EWillAccountIf, Ownable {
         accounter = _accounter;
     }
 
-    function setMinLockedFund(uint256 _minFund) public onlyOwner {
-        minLockedFund = _minFund * 1 ether;
+    function setMinParkingAmount(uint256 _minParkingAmount) public onlyOwner {
+        minParkingAmount = _minParkingAmount * 1 ether;
     }
 
     // KYC
-    function addVerifiedCustomer(address _customer) public onlyOwner {
-        kyc[_customer] = true;
+    function verifyTokenHolder(address _tokenHolder) public onlyOwner {
+        require(tokenHolders[_tokenHolder].verified == false);
+        tokenHolders[_tokenHolder] = TokenHolder({
+            amount: 0,
+            rewardedAt: block.number,
+            verified: true
+        });
     }
 
-    function deleteVerifiedCustomer(address _customer) public onlyOwner {
-        kyc[_customer] = false;
+    function unverifyTokenHolder(address _tokenHolder) public onlyOwner {
+        if (tokenHolders[_tokenHolder].amount > 0) {
+            token.safeTransfer(_tokenHolder, tokenHolders[_tokenHolder].amount);
+        }
+        delete tokenHolders[_tokenHolder];
     }
 
     // Accounting
@@ -79,34 +94,53 @@ contract EWillAccount is EWillAccountIf, Ownable {
         require(_amount <= income / 2);  // don't allow to withdraw more than a half of entire fund
 
         lastPayout = now;
-        income = income.sub(_amount);
+        lastPayoutBlockNumber = block.number;
+        rewardToDistribute = income.add(rewardToDistribute).sub(rewardPaid).sub(_amount);
+
+        parkedFund = parkedFund.add(rewardPaid);
+        parkedFundCap = parkedFund;
+        rewardPaid = 0;
+        income = 0;
+
         token.safeTransfer(accounter, _amount);
         Withdrew(_amount);
     }
 
-    // Fund parking
-    function park(uint256 _amount) public onlyVerifiedCustomer {
-        require(_amount >= minLockedFund);
+    // Token parking
+    function park(uint256 _amount) public onlyVerifiedHolders {
+        require(_amount >= minParkingAmount);
+
+        TokenHolder storage holder = tokenHolders[msg.sender];
+        holder.amount = holder.amount.add(_amount);
+        holder.rewardedAt = block.number;
 
         token.charge(msg.sender, _amount, bytes32('parking'));
-        //todo: park tokens to get rewarded
-        require(false);
+        parkedFund = parkedFund.add(_amount);
 
         Parked(msg.sender, _amount);
     }
 
-    function unpark() public {
-        //todo: withdraw the all parked by the sender tokens
-        require(false);
+    function unpark() public onlyVerifiedHolders {
+        TokenHolder storage holder = tokenHolders[msg.sender];
+        uint256 amount = holder.amount;
 
-        Unparked(msg.sender, 0);
+        token.safeTransfer(msg.sender, amount);
+        parkedFund = parkedFund.sub(amount);
+        holder.amount = 0;
+
+        Unparked(msg.sender, amount);
     }
 
-    function distributeInterest(uint256 _amount) public onlyOwner {
-        //todo: reward holders of parked tokens
-        require(false);
+    function getReward() public onlyVerifiedHolders {
+        TokenHolder storage holder = tokenHolders[msg.sender];
+        uint256 reward = holder.amount.mul(rewardToDistribute).div(parkedFundCap);
 
-        Rewarded(this, _amount);
+        require(holder.rewardedAt < lastPayoutBlockNumber);
+        holder.rewardedAt = block.number;
+        holder.amount = holder.amount.add(reward);
+        rewardPaid = rewardPaid.add(reward);
+
+        Rewarded(msg.sender, reward);
     }
 
     // EWillAccountIf
