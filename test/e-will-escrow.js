@@ -1,3 +1,4 @@
+const EWillToken = artifacts.require("EWillToken");
 const EWillEscrow = artifacts.require("EWillEscrow");
 const TestUtils = require('./test-utils.js');
 
@@ -9,10 +10,17 @@ contract('EWillEscrow', function(accounts) {
   const deleg = accounts[0];
   //todo: add tests for delegating
 
+  let ewToken = null;
   let ewEscrow = null;
 
+  it("should create token", async () => {
+    ewToken = await EWillToken.new(1.0e+21);
+    ewToken.transfer(prov, 15.0e+18);
+  });
+
   it("should have a correct name", async () => {
-    ewEscrow = await EWillEscrow.new(10);
+    ewEscrow = await EWillEscrow.new(ewToken.address, 10);
+    await ewToken.addMerchant(ewEscrow.address);
 
     const name = await ewEscrow.name.call();
     assert.equal(name, 'E-Will Escrow', 'the contract has the wrong name');
@@ -28,10 +36,10 @@ contract('EWillEscrow', function(accounts) {
 
   it("should register a provider", async () => {
     let txResult;
-    txResult = await ewEscrow.register(0xdeadbeaf, deleg, { from: prov, value: 7.0e+18 });
+    txResult = await ewEscrow.register(0xdeadbeaf, deleg, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, prov, 'the provider is registered with the wrong address');
-    assert.equal(txEvent.args.amount, 7.0e+18, 'the provider is registered with the wrong amount');
+    //assert.equal(txEvent.args.amount, 5.0e+18, 'the provider is registered with the wrong amount');
 
     const isValid = await ewEscrow.isProviderValid.call(prov);
     assert.equal(isValid, true, 'the contract has declined the provider');
@@ -41,10 +49,10 @@ contract('EWillEscrow', function(accounts) {
     let txResult;
     txResult = await ewEscrow.addWhitelistedProvider(provwl, { from: admin });
 
-    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: provwl, value: 1.0e+18 });
+    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: provwl });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, provwl, 'the provider is registered with the wrong address');
-    assert.equal(txEvent.args.amount, 1.0e+18, 'the provider is registered with the wrong amount');
+    //assert.equal(txEvent.args.amount, 0, 'the provider is registered with the wrong amount');
 
     const isValid = await ewEscrow.isProviderValid.call(provwl);
     assert.equal(isValid, true, 'the contract has declined the provider');

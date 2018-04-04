@@ -1,9 +1,9 @@
+const EWillPreTokensale = artifacts.require("./EWillPreTokensale.sol");
 const EWillEscrow = artifacts.require("./EWillEscrow.sol");
 const EWillAccount = artifacts.require("./EWillAccount.sol");
 const EWillPlatform = artifacts.require("./EWillPlatform.sol");
-const EWillPreTokensale = artifacts.require("./EWillPreTokensale.sol");
 
-module.exports = async function(deployer, network, accounts) {
+module.exports = function(deployer, network, accounts) {
   let annualFee = 0;
 
   if (network == 'test' || network == 'staging') {
@@ -13,7 +13,16 @@ module.exports = async function(deployer, network, accounts) {
     throw new Error('not implemented');
   }
 
-  const preTokensale = await EWillPreTokensale.deployed();
-  const tokenAddress = await preTokensale.token.call();
-  await deployer.deploy(EWillPlatform, annualFee, EWillAccount.address, EWillEscrow.address, tokenAddress);
+  deployer.then( async () => {
+    const escrow = await EWillEscrow.deployed();
+    const account = await EWillAccount.deployed();
+    const preTokensale = await EWillPreTokensale.deployed();
+    const tokenAddress = await preTokensale.token.call();
+
+    await deployer.deploy(EWillPlatform, annualFee, account.address, escrow.address, tokenAddress);
+
+    const platform = await EWillPlatform.deployed();
+    await escrow.setPlatform(platform.address);
+    await account.setPlatform(platform.address);
+  });
 };

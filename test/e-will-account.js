@@ -1,3 +1,4 @@
+const EWillToken = artifacts.require("EWillToken");
 const EWillAccount = artifacts.require("EWillAccount");
 const TestUtils = require('./test-utils.js');
 
@@ -9,8 +10,14 @@ contract('EWillAccount', function(accounts) {
 
   let ewAccount = null;
 
+  it("should create token", async () => {
+    ewToken = await EWillToken.new(1.0e+21);
+    ewToken.transfer(holder1, 15.0e+18);
+  });
+
   it("should have a correct name", async () => {
-    ewAccount = await EWillAccount.new(10, acc);
+    ewAccount = await EWillAccount.new(ewToken.address, 10, acc);
+    await ewToken.addMerchant(ewAccount.address);
 
     const name = await ewAccount.name.call();
     assert.equal(name, 'E-Will Account', 'the contract has the wrong name');
@@ -18,15 +25,18 @@ contract('EWillAccount', function(accounts) {
 
   it("should configure the contract", async () => {
     let txResult;
-    txResult = await ewAccount.setMinLockedFund(15, { from: admin });
+    txResult = await ewAccount.setPlatform(admin, { from: admin });
+    txResult = await ewAccount.setMinParkingAmount(15, { from: admin });
 
-    const minLockedFund = await ewAccount.minLockedFund.call();
-    assert.equal(minLockedFund.toString(), '15000000000000000000', 'the contract has the wrong Minimal Locked Fund');
+    const minParkingAmount = await ewAccount.minParkingAmount.call();
+    assert.equal(minParkingAmount.toString(), '15000000000000000000', 'the contract has the wrong Minimal Parking Fund');
   });
 
   it("should get funds", async () => {
     let txResult;
-    txResult = await ewAccount.fund(0xdeadbeaf, { from: admin, value: 70.0e+18 });
+    // transfer tokens first
+    txResult = await ewToken.transfer(ewAccount.address, 70.0e+18, { from: admin });
+    txResult = await ewAccount.fund(0xdeadbeaf, 70.0e+18, { from: admin });
     txEvent = TestUtils.findEvent(txResult.logs, 'Funded');
     assert.equal(txEvent.args.willId, 0xdeadbeaf, 'the fund was made for the wrong willId');
     assert.equal(txEvent.args.amount, 70.0e+18, 'the fund was made for the wrong amount');
@@ -53,7 +63,7 @@ contract('EWillAccount', function(accounts) {
     assert.equal(txEvent.args.amount, amount, 'withdrew the wrong amount');
   });
 
-  it("should not pay oftener than a once per 28 days for operational expenses", async () => {
+  it("should not pay oftener than a once per 30 days for operational expenses", async () => {
     let txResult = null;
     const amount = 10.0e+18;
 

@@ -43,12 +43,14 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Constructor
-    function EWillEscrow(uint256 _minFund) public {
+    function EWillEscrow(address _token, uint256 _minFund) public {
+        token = EWillTokenIf(_token);
         minProviderFund = _minFund * 1 ether;
     }
 
     // Configuration
-    function setPlatformAddress(address _platform) public onlyOwner {
+    function setPlatform(address _platform) public onlyOwner {
+        require(platform == 0x0);
         platform = _platform;
     }
 
@@ -83,7 +85,9 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         require(_delegate != msg.sender);
 
         uint256 fund = minFundForProvider(msg.sender);
-        token.charge(msg.sender, fund, bytes32('escrow_registration_deposit'));
+        if (fund > 0) {
+            token.charge(msg.sender, fund, bytes32('escrow_registration_deposit'));
+        }
 
         providers[msg.sender] = Provider({
             fund: fund,

@@ -55,7 +55,8 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // Constructor
-    function EWillAccount(uint256 _minParkingAmount, address _accounter) public {
+    function EWillAccount(address _token, uint256 _minParkingAmount, address _accounter) public {
+        token = EWillTokenIf(_token);
         minParkingAmount = _minParkingAmount * 1 ether;
         accounter = _accounter;
         lastPayout = 0;
@@ -63,6 +64,11 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // Configuration
+    function setPlatform(address _platform) public onlyOwner {
+        require(platform == 0x0);
+        platform = _platform;
+    }
+
     function setAccounter(address _accounter) public onlyOwner {
         accounter = _accounter;
     }
