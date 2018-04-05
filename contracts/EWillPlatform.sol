@@ -34,10 +34,10 @@ contract EWillPlatform is Ownable {
     string constant public name = 'E-Will Platform';
 
     // State Variables
-    uint256 public annualPlatformFee;                       // annual platform fee in dollars
-    mapping (address => uint256) public annualProviderFee;  // annual provider fee in dollars
-    uint256 public rateEther;                               // exchange rate, weis per dollar
-    uint256 public rateToken;                               // exchange rate, tokenweis per dollar
+    uint256 public annualPlatformFee;                       // annual platform fee in cents
+    mapping (address => uint256) public annualProviderFee;  // annual provider fee in cents
+    uint256 public rateEther;                               // exchange rate, weis per cent
+    uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
 
     mapping (uint256 => Will) public wills;
@@ -81,6 +81,8 @@ contract EWillPlatform is Ownable {
         escrowWallet = EWillEscrowIf(_escrow);
         token = EWillTokenIf(_token);
         oracle = owner;
+        rateToken = 1 ether;
+        rateEther = 1 ether;
     }
 
     // Configuration
@@ -89,6 +91,8 @@ contract EWillPlatform is Ownable {
     }
 
     function setExchangeRates(uint256 _token, uint256 _ether) public onlyOracle {
+        require(_token > 0);
+        require(_ether > 0);
         rateToken = _token;
         rateEther = _ether;
     }
@@ -100,10 +104,12 @@ contract EWillPlatform is Ownable {
     }
 
     function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
+        require(_fee > 0);
         annualPlatformFee = _fee;
     }
 
     function setAnnaulProviderFee(uint256 _fee) public {
+        require(_fee > 0);
         annualProviderFee[msg.sender] = _fee;
     }
 

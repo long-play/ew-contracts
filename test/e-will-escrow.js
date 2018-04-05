@@ -15,7 +15,7 @@ contract('EWillEscrow', function(accounts) {
 
   it("should create token", async () => {
     ewToken = await EWillToken.new(1.0e+21);
-    ewToken.transfer(prov, 15.0e+18);
+    await ewToken.transfer(prov, 15.0e+18);
   });
 
   it("should have a correct name", async () => {

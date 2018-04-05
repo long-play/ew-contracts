@@ -15,7 +15,7 @@ contract('EWillPlatform', function(accounts) {
   //todo: add tests for delegating
 
   const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
-  const ewTokenSupply = 100000;
+  const ewTokenSupply = 100.0e+21;
 
   const WillState = {
     None: 0,
@@ -33,9 +33,15 @@ contract('EWillPlatform', function(accounts) {
 
   it("should have a correct name", async () => {
     ewToken = await EWillToken.new(ewTokenSupply);
-    ewEscrow = await EWillEscrow.new(70);
-    ewAccount = await EWillAccount.new(1000, admin);
+    ewEscrow = await EWillEscrow.new(ewToken.address, 70);
+    ewAccount = await EWillAccount.new(ewToken.address, 1000, admin);
     ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address, ewToken.address);
+
+    await ewAccount.setPlatform(ewPlatform.address);
+    await ewEscrow.setPlatform(ewPlatform.address);
+    await ewPlatform.setOracle(admin);
+    await ewToken.transfer(prov, 150.0e+18);
+    await ewToken.transfer(ewPlatform.address, 5.0e+21);
 
     const name = await ewPlatform.name.call();
     assert.equal(name, 'E-Will Platform', 'the contract has the wrong name');
@@ -43,15 +49,21 @@ contract('EWillPlatform', function(accounts) {
 
   it("should configure the contract", async () => {
     let txResult;
-    txResult = await ewPlatform.setAnnaulPlatformFee(5, { from: admin });
-    txResult = await ewPlatform.setAnnaulProviderFee(10, { from: prov });
+    await ewToken.addMerchant(ewEscrow.address);
+    await ewToken.addMerchant(ewAccount.address);
+    await ewToken.addMerchant(ewPlatform.address);
+
+    txResult = await ewPlatform.setAnnaulPlatformFee(500, { from: admin });
+    txResult = await ewPlatform.setAnnaulProviderFee(1000, { from: prov });
+    // 1 ether == $1000, 1 EWILL == $100
+    txResult = await ewPlatform.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
 
     const annualPlatformFee = await ewPlatform.annualPlatformFee.call();
     const annualProviderFee = await ewPlatform.annualProviderFee.call(prov);
-    assert.equal(annualPlatformFee.toString(), '5', 'the contract has the wrong Annual Platform Fee');
-    assert.equal(annualProviderFee.toString(), '10', 'the contract has the wrong Annual Provider Fee');
+    assert.equal(annualPlatformFee.toString(), '500', 'the contract has the wrong Annual Platform Fee');
+    assert.equal(annualProviderFee.toString(), '1000', 'the contract has the wrong Annual Provider Fee');
 
-    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov, value: 80.0e+18 });
+    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov });
   });
 
   it("should create a will", async () => {
@@ -60,7 +72,7 @@ contract('EWillPlatform', function(accounts) {
     let benHash = (new BN(benf.slice(2), 16)).toBuffer();
     benHash = new BN(keccak256(benHash), 16);
 
-    txResult = await ewPlatform.createWill(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 2.0e+3 });
+    txResult = await ewPlatform.createWillWithEther(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 20.0e+15 });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
     assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
