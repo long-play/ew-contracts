@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillEscrowIf.sol';
 import './EWillTokenIf.sol';
@@ -97,7 +97,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         });
         delegates[_delegate] = msg.sender;
 
-        Registered(msg.sender);
+        emit Registered(msg.sender);
     }
 
     function changeDelegate(address _delegate) public {
@@ -108,7 +108,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         providers[msg.sender].delegate = _delegate;
         delegates[_delegate] = msg.sender;
 
-        UpdatedDelegate(msg.sender, _delegate);
+        emit UpdatedDelegate(msg.sender, _delegate);
     }
 
     function topup(uint256 _amount) public {
@@ -117,7 +117,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         token.charge(msg.sender, _amount, bytes32('escrow_deposit_topup'));
         providers[msg.sender].fund = providers[msg.sender].fund.add(_amount);
 
-        Funded(0, msg.sender, _amount);
+        emit Funded(0, msg.sender, _amount);
     }
 
     function withdraw(uint256 _amount) public {
@@ -127,13 +127,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         providers[msg.sender].fund = remain;
         token.safeTransfer(msg.sender, _amount);
 
-        Withdrew(msg.sender, _amount);
+        emit Withdrew(msg.sender, _amount);
     }
 
     // EWillEscrowIf
     function fund(uint256 _willId, address _provider, uint256 _amount) public onlyPlatform {
         providers[_provider].fund = providers[_provider].fund.add(_amount);
-        Funded(_willId, _provider, _amount);
+        emit Funded(_willId, _provider, _amount);
     }
 
     function isProviderValid(address _provider) constant public returns (bool) {

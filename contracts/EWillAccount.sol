@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillAccountIf.sol';
 import './EWillTokenIf.sol';
@@ -109,7 +109,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
         income = 0;
 
         token.safeTransfer(accounter, _amount);
-        Withdrew(_amount);
+        emit Withdrew(_amount);
     }
 
     // Token parking
@@ -123,7 +123,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
         token.charge(msg.sender, _amount, bytes32('parking'));
         parkedFund = parkedFund.add(_amount);
 
-        Parked(msg.sender, _amount);
+        emit Parked(msg.sender, _amount);
     }
 
     function unpark() public onlyVerifiedHolders {
@@ -134,7 +134,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
         parkedFund = parkedFund.sub(amount);
         holder.amount = 0;
 
-        Unparked(msg.sender, amount);
+        emit Unparked(msg.sender, amount);
     }
 
     function getReward() public onlyVerifiedHolders {
@@ -146,12 +146,12 @@ contract EWillAccount is EWillAccountIf, Ownable {
         holder.amount = holder.amount.add(reward);
         rewardPaid = rewardPaid.add(reward);
 
-        Rewarded(msg.sender, reward);
+        emit Rewarded(msg.sender, reward);
     }
 
     // EWillAccountIf
     function fund(uint256 _willId, uint256 _amount) public onlyPlatform {
         income = income.add(_amount);
-        Funded(_willId, _amount);
+        emit Funded(_willId, _amount);
     }
 }

@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'contracts/EWillToken.sol';
 
 
@@ -76,7 +76,7 @@ contract EWillTokensale is Ownable {
         collected = 0;
         currentRound += 1;
 
-        TokensaleScheduled(currentRound, _startDate, _rate, _cap);
+        emit TokensaleScheduled(currentRound, _startDate, _rate, _cap);
     }
 
     function() public payable {
@@ -87,7 +87,7 @@ contract EWillTokensale is Ownable {
         require(endDate < now);
         finalized = true;
 
-        TokensaleFinalized(currentRound, collected);
+        emit TokensaleFinalized(currentRound, collected);
     }
 
     function withdrawRemains() public onlyOwner isFinalized {
@@ -114,6 +114,6 @@ contract EWillTokensale is Ownable {
         token.safeTransfer(msg.sender, allowedToBuy);
         collected = collected.add(allowedToBuy);
 
-        NewContribution(msg.sender, allowedToBuy);
+        emit NewContribution(msg.sender, allowedToBuy);
     }
 }

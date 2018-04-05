@@ -1,8 +1,8 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/DetailedERC20.sol';
-import 'zeppelin-solidity/contracts/token/StandardToken.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/DetailedERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
 //import './EWillTokenIf.sol'; // removed due to a bug of truffle - https://github.com/trufflesuite/truffle/issues/593
 
 
@@ -21,8 +21,8 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
 
     // Constructor
     function EWillToken(uint256 _totalSupply) public {
-        totalSupply = _totalSupply;
-        balances[msg.sender] = totalSupply;
+        totalSupply_ = _totalSupply;
+        balances[msg.sender] = _totalSupply;
     }
 
     // Configuration
@@ -42,6 +42,6 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
         balances[_payer] = balances[_payer].sub(_amount);
         balances[msg.sender] = balances[msg.sender].add(_amount);
 
-        Charged(msg.sender, _payer, _amount, _note);
+        emit Charged(msg.sender, _payer, _amount, _note);
     }
 }

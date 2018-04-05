@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'contracts/EWillToken.sol';
 
 
@@ -76,7 +76,7 @@ contract EWillPreTokensale is Ownable {
         token.safeTransfer(_tokensaleContract, tokenBalance.sub(devTokenShare));
         finalized = true;
 
-        PreTokensaleFinalized(collected);
+        emit PreTokensaleFinalized(collected);
     }
 
     // Internal functions
@@ -98,6 +98,6 @@ contract EWillPreTokensale is Ownable {
         token.safeTransfer(msg.sender, allowedToBuy);
         collected = collected.add(allowedToBuy);
 
-        NewContribution(msg.sender, allowedToBuy);
+        emit NewContribution(msg.sender, allowedToBuy);
     }
 }

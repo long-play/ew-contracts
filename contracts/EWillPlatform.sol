@@ -1,7 +1,7 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillAccountIf.sol';
 import './EWillEscrowIf.sol';
@@ -170,8 +170,8 @@ contract EWillPlatform is Ownable {
         userWills[msg.sender].push(_willId);
 
         // emit events
-        WillCreated(_willId, msg.sender, _provider);
-        WillStateUpdated(_willId, msg.sender, WillState.Created);
+        emit WillCreated(_willId, msg.sender, _provider);
+        emit WillStateUpdated(_willId, msg.sender, WillState.Created);
     }
 
     function prolongWill(uint256 _willId) internal {
@@ -188,7 +188,7 @@ contract EWillPlatform is Ownable {
         will.validTill += 1 years;
 
         // emit an event
-        WillProlonged(_willId, will.owner, will.validTill);
+        emit WillProlonged(_willId, will.owner, will.validTill);
     }
 
     // Public Will
@@ -231,7 +231,7 @@ contract EWillPlatform is Ownable {
         token.safeTransfer(escrowWallet, activationReward(will));
         escrowWallet.fund(_willId, will.provider, activationReward(will));
 
-        WillStateUpdated(_willId, will.owner, will.state);
+        emit WillStateUpdated(_willId, will.owner, will.state);
     }
 
     function refreshWill(uint256 _willId) public onlyProvider(_willId) {
@@ -250,7 +250,7 @@ contract EWillPlatform is Ownable {
         token.safeTransfer(escrowWallet, refreshReward(will));
         escrowWallet.fund(_willId, will.provider, refreshReward(will));
 
-        WillRefreshed(_willId, will.owner);
+        emit WillRefreshed(_willId, will.owner);
     }
 
     function prolongWillWithTokens(uint256 _willId) public {
@@ -284,7 +284,7 @@ contract EWillPlatform is Ownable {
 
         //todo: send a small amount of ethers to the beneficiary
 
-        WillStateUpdated(_willId, will.owner, will.state);
+        emit WillStateUpdated(_willId, will.owner, will.state);
     }
 
     function claimWill(uint256 _willId) public {
@@ -297,7 +297,7 @@ contract EWillPlatform is Ownable {
         token.safeTransfer(escrowWallet, claimReward(will));
         escrowWallet.fund(_willId, will.provider, claimReward(will));
 
-        WillStateUpdated(_willId, will.owner, will.state);
+        emit WillStateUpdated(_willId, will.owner, will.state);
     }
 
     function declineWill(uint256 _willId) public onlyProvider(_willId) {
@@ -308,6 +308,6 @@ contract EWillPlatform is Ownable {
         will.state = WillState.Declined;
         will.updatedAt = now;
 
-        WillStateUpdated(_willId, will.owner, will.state);
+        emit WillStateUpdated(_willId, will.owner, will.state);
     }
 }
