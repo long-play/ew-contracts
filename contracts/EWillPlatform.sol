@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
@@ -32,6 +32,7 @@ contract EWillPlatform is Ownable {
 
     // Constants
     string constant public name = 'E-Will Platform';
+    uint256 constant private oneYear = 365 days;
 
     // State Variables
     uint256 public annualPlatformFee;                       // annual platform fee in cents
@@ -77,7 +78,7 @@ contract EWillPlatform is Ownable {
     }
 
     // Constructor
-    function EWillPlatform(uint256 _annualFee, address _account, address _escrow, address _token) public {
+    constructor(uint256 _annualFee, address _account, address _escrow, address _token) public {
         annualPlatformFee = _annualFee;
         accountWallet = EWillAccountIf(_account);
         escrowWallet = EWillEscrowIf(_escrow);
@@ -213,7 +214,7 @@ contract EWillPlatform is Ownable {
 
         // update the will
         will.newFee = annualProviderFee[will.provider].mul(rateToken);
-        will.validTill += 1 years;
+        will.validTill += oneYear;
 
         // emit an event
         emit WillProlonged(_willId, will.owner, will.validTill);
@@ -240,7 +241,7 @@ contract EWillPlatform is Ownable {
     }
 
     function numberOfBeneficiaryWills(address _beneficiary) public view returns(uint256) {
-        return beneficiaryWills[uint256(keccak256(_beneficiary))].length;
+        return beneficiaryWills[addressKeccak256(_beneficiary)].length;
     }
 
     function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer /*todo: wait time before release*/) public {
@@ -269,7 +270,7 @@ contract EWillPlatform is Ownable {
 
         will.state = WillState.Activated;
         will.updatedAt = now;
-        will.validTill = now + 1 years;
+        will.validTill = now + oneYear;
 
         token.safeTransfer(escrowWallet, activationReward(will));
         escrowWallet.fund(_willId, will.provider, activationReward(will));
@@ -333,7 +334,7 @@ contract EWillPlatform is Ownable {
     function claimWill(uint256 _willId) public {
         Will storage will = wills[_willId];
         require(will.state == WillState.Pending);
-        require(uint256(keccak256(msg.sender)) == will.beneficiaryHash);
+        require(addressKeccak256(msg.sender) == will.beneficiaryHash);
 
         will.state = WillState.Claimed;
 
@@ -352,5 +353,19 @@ contract EWillPlatform is Ownable {
         will.updatedAt = now;
 
         emit WillStateUpdated(_willId, will.owner, will.state);
+    }
+
+    // Internal
+    function addressKeccak256(address _address) internal pure returns (uint256) {
+        return uint256(keccak256(toBytes(_address)));
+    }
+
+    function toBytes(address a) internal pure returns (bytes b){
+        assembly {
+            let m := mload(0x40)
+            mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, a))
+            mstore(0x40, add(m, 52))
+            b := m
+        }
     }
 }

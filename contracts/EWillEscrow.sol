@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
@@ -43,7 +43,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Constructor
-    function EWillEscrow(address _token, uint256 _minFund) public {
+    constructor(address _token, uint256 _minFund) public {
         token = EWillTokenIf(_token);
         minProviderFund = _minFund * 1 ether;
     }

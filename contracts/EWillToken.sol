@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/DetailedERC20.sol';
@@ -20,7 +20,7 @@ contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 
     }
 
     // Constructor
-    function EWillToken(uint256 _totalSupply) public {
+    constructor(uint256 _totalSupply) public {
         totalSupply_ = _totalSupply;
         balances[msg.sender] = _totalSupply;
     }

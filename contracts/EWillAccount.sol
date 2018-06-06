@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
@@ -55,7 +55,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // Constructor
-    function EWillAccount(address _token, uint256 _minParkingAmount, address _accounter) public {
+    constructor(address _token, uint256 _minParkingAmount, address _accounter) public {
         token = EWillTokenIf(_token);
         minParkingAmount = _minParkingAmount * 1 ether;
         accounter = _accounter;

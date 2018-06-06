@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
@@ -51,7 +51,7 @@ contract EWillTokensale is Ownable {
     }
 
     // Constructor
-    function EWillTokensale(address _token) public {
+    constructor(address _token) public {
         token = EWillToken(_token);
     }
 

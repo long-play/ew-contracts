@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
@@ -46,7 +46,7 @@ contract EWillPreTokensale is Ownable {
     }
 
     // Constructor
-    function EWillPreTokensale(uint256 _rate, uint256 _startDate, uint256 _endDate) public {
+    constructor(uint256 _rate, uint256 _startDate, uint256 _endDate) public {
         require(_rate > 0);
         require(_startDate > now);
         require(_endDate > _startDate);
