@@ -39,6 +39,8 @@ contract EWillPlatform is Ownable {
     uint256 public rateEther;                               // exchange rate, weis per cent
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
+    uint256 public tokenDiscount;                           // discount if paid with tokens, in percent
+    uint256 public referrerDiscount;                        // discount if referenced, in percent
 
     mapping (uint256 => Will) public wills;
     mapping (address => uint256[]) public userWills;
@@ -83,6 +85,10 @@ contract EWillPlatform is Ownable {
         oracle = owner;
         rateToken = 1 ether;
         rateEther = 1 ether;
+
+        exchangeFee = 1;
+        tokenDiscount = 0;
+        referrerDiscount = 0;
     }
 
     // Configuration
@@ -103,6 +109,18 @@ contract EWillPlatform is Ownable {
         exchangeFee = _percent;
     }
 
+    function setTokenDiscount(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100 - 2 * referrerDiscount);
+        tokenDiscount = _percent;
+    }
+
+    function setReferrerDiscount(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100 - tokenDiscount - referrerDiscount);
+        referrerDiscount = _percent;
+    }
+
     function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
         require(_fee > 0);
         annualPlatformFee = _fee;
@@ -114,16 +132,22 @@ contract EWillPlatform is Ownable {
     }
 
     // Finance calculations
-    function creatingFee(address _provider) public constant returns (uint256) {
-        return annualProviderFee[_provider] * 12 / 10 + annualPlatformFee;
+    function platformFee(bool _isReferred, bool _isDiscounted) public constant returns (uint256) {
+        uint256 td = annualPlatformFee.mul(_isDiscounted ? tokenDiscount : 0).div(100);
+        uint256 rd = annualPlatformFee.mul(_isReferred ? referrerDiscount : 0).div(100);
+        return annualPlatformFee.sub(td).sub(rd);
     }
 
-    function annualFee(uint256 _willId) public constant returns (uint256) {
-        return annualFee(wills[_willId]);
+    function creatingProviderFee(address _provider) public constant returns (uint256) {
+        return annualProviderFee[_provider] * 12 / 10;
     }
 
-    function annualFee(Will _will) private constant returns (uint256) {
-        return annualProviderFee[_will.provider] + annualPlatformFee;
+    function prolongProviderFee(uint256 _willId) public constant returns (uint256) {
+        return prolongProviderFee(wills[_willId]);
+    }
+
+    function prolongProviderFee(Will _will) private constant returns (uint256) {
+        return annualProviderFee[_will.provider];
     }
 
     function activationReward(Will _will) private pure returns (uint256) {
@@ -149,14 +173,13 @@ contract EWillPlatform is Ownable {
     }
 
     // Internal Will
-    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) internal {
+    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer, bool _isDiscounted) internal {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
 
         // transfer commission to the account wallet
-        token.safeTransfer(accountWallet, annualPlatformFee.mul(rateToken));
-        accountWallet.fund(_willId, annualPlatformFee.mul(rateToken));
+        fundAccount(_willId, _referrer, _isDiscounted);
 
         // create the will
         wills[_willId] = Will({
@@ -180,14 +203,13 @@ contract EWillPlatform is Ownable {
         emit WillStateUpdated(_willId, msg.sender, WillState.Created);
     }
 
-    function prolongWill(uint256 _willId) internal {
+    function prolongWill(uint256 _willId, bool _isDiscounted) internal {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         require(will.validTill > now + 30 days);
 
         // transfer commission to the account wallet
-        token.safeTransfer(accountWallet, annualPlatformFee.mul(rateToken));
-        accountWallet.fund(_willId, annualPlatformFee.mul(rateToken));
+        fundAccount(_willId, address(0), _isDiscounted);
 
         // update the will
         will.newFee = annualProviderFee[will.provider].mul(rateToken);
@@ -195,6 +217,21 @@ contract EWillPlatform is Ownable {
 
         // emit an event
         emit WillProlonged(_willId, will.owner, will.validTill);
+    }
+
+    function fundAccount(uint256 _willId, address _referrer, bool _isDiscounted) internal {
+        uint256 td = annualPlatformFee.mul(_isDiscounted ? tokenDiscount : 0).div(100);
+        uint256 rd = 0;
+
+        // transfer bonus to the referrer wallet
+        if (address(0) != _referrer) {
+            rd = annualPlatformFee.mul(referrerDiscount).div(100);
+            token.safeTransfer(_referrer, rd.mul(rateToken));
+        }
+
+        // transfer commission to the account wallet
+        token.safeTransfer(accountWallet, annualPlatformFee.sub(td).sub(rd).sub(rd).mul(rateToken));
+        accountWallet.fund(_willId, annualPlatformFee.mul(rateToken));
     }
 
     // Public Will
@@ -206,16 +243,16 @@ contract EWillPlatform is Ownable {
         return beneficiaryWills[uint256(keccak256(_beneficiary))].length;
     }
 
-    function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public {
-        uint256 fee = creatingFee(_provider).mul(rateToken);
+    function createWillWithTokens(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer /*todo: wait time before release*/) public {
+        uint256 fee = creatingProviderFee(_provider).add(platformFee(address(0) != _referrer, true)).mul(rateToken);
         require(fee <= token.balanceOf(msg.sender));
 
         token.charge(msg.sender, fee, bytes32(_willId));
-        createWill(_willId, _storageId, _beneficiaryHash, _provider);
+        createWill(_willId, _storageId, _beneficiaryHash, _provider, _referrer, true);
     }
 
-    function createWillWithEther(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider) public payable {
-        uint256 fee = creatingFee(_provider).mul(rateEther);
+    function createWillWithEther(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer) public payable {
+        uint256 fee = creatingProviderFee(_provider).add(platformFee(address(0) != _referrer, false)).mul(rateEther);
         require(fee <= msg.value);
 
         uint256 change = msg.value.sub(fee);
@@ -223,7 +260,7 @@ contract EWillPlatform is Ownable {
             msg.sender.transfer(change);
         }
 
-        createWill(_willId, _storageId, _beneficiaryHash, _provider);
+        createWill(_willId, _storageId, _beneficiaryHash, _provider, _referrer, false);
     }
 
     function activateWill(uint256 _willId) public onlyProvider(_willId) {
@@ -260,15 +297,15 @@ contract EWillPlatform is Ownable {
     }
 
     function prolongWillWithTokens(uint256 _willId) public {
-        uint256 fee = annualFee(_willId).mul(rateToken);
+        uint256 fee = prolongProviderFee(_willId).add(platformFee(false, true)).mul(rateToken);
         require(fee <= token.balanceOf(msg.sender));
 
         token.charge(msg.sender, fee, bytes32(_willId));
-        prolongWill(_willId);
+        prolongWill(_willId, true);
     }
 
     function prolongWillWithEther(uint256 _willId) public payable {
-        uint256 fee = annualFee(_willId).mul(rateEther);
+        uint256 fee = prolongProviderFee(_willId).add(platformFee(false, false)).mul(rateEther);
         require(fee <= msg.value);
 
         uint256 change = msg.value.sub(fee);
@@ -276,7 +313,7 @@ contract EWillPlatform is Ownable {
             msg.sender.transfer(change);
         }
 
-        prolongWill(_willId);
+        prolongWill(_willId, false);
     }
 
     function applyWill(uint256 _willId, uint256 _decryptionKey) public onlyProvider(_willId) {

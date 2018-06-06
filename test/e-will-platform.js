@@ -72,7 +72,7 @@ contract('EWillPlatform', function(accounts) {
     let benHash = (new BN(benf.slice(2), 16)).toBuffer();
     benHash = new BN(keccak256(benHash), 16);
 
-    txResult = await ewPlatform.createWillWithEther(willId, 0x5108a9e, benHash.toString(10), prov, { from: user, value: 20.0e+15 });
+    txResult = await ewPlatform.createWillWithEther(willId, 0x5108a9e, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
     assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
