@@ -12,11 +12,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     using SafeERC20 for EWillTokenIf;
 
     // Custom Types
+    enum ProviderState { None, Pending, Whitelisted, Activated, Banned }
+
     struct Provider {
-        uint256     fund;
-        uint256     info;
-        uint256     registeredAt;
-        address     delegate;
+        uint256         fund;
+        uint256         info;
+        address         delegate;
+        ProviderState   state;
     }
 
     // Constants
@@ -29,10 +31,11 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     mapping (address => Provider) public providers;
     mapping (address => address) public delegates;
-    mapping (address => bool) public whitelisted;
 
     // Events
     event Registered(address provider);
+    event Activated(address provider, ProviderState newState);
+    event Banned(address provider);
     event UpdatedDelegate(address provider, address delegate);
     event Withdrew(address provider, uint256 amount);
 
@@ -50,7 +53,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // Configuration
     function setPlatform(address _platform) public onlyOwner {
-        require(platform == 0x0);
+        //???require(platform == 0x0);
         platform = _platform;
     }
 
@@ -58,42 +61,43 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         minProviderFund = _minFund * 1 ether;
     }
 
-    function addWhitelistedProvider(address _provider) public onlyOwner {
-        whitelisted[_provider] = true;
+    function activateProvider(address _provider, ProviderState _state) public onlyOwner {
+        require(isActiveState(_state));
+        require(providers[_provider].state == ProviderState.Pending);
+
+        providers[_provider].state = _state;
+        emit Activated(_provider, _state);
     }
 
-    function removeWhitelistedProvider(address _provider) public onlyOwner {
-        whitelisted[_provider] = false;
+    function banProvider(address _provider) public onlyOwner {
+        require(isActiveState(providers[_provider].state));
+
+        providers[_provider].state = ProviderState.Banned;
+        emit Banned(_provider);
     }
 
     function updateProviderInfo(uint256 _newInfoId) public {
-        require(providers[msg.sender].registeredAt != 0);
         require(isProviderValid(msg.sender));
 
         providers[msg.sender].info = _newInfoId;
     }
 
     // Finance
-    function minFundForProvider(address _provider) public constant returns (uint256) {
-        return whitelisted[_provider] ? 0 : minProviderFund;
+    function minFundForProvider(address _provider) public view returns (uint256) {
+        return providers[_provider].state == ProviderState.Whitelisted ? 0 : minProviderFund;
     }
 
     // Escrow
     function register(uint256 _infoId, address _delegate) public {
-        require(providers[msg.sender].registeredAt == 0);
+        require(providers[msg.sender].state == ProviderState.None);
         require(_delegate != 0);
         require(_delegate != msg.sender);
 
-        uint256 fund = minFundForProvider(msg.sender);
-        if (fund > 0) {
-            token.charge(msg.sender, fund, bytes32('escrow_registration_deposit'));
-        }
-
         providers[msg.sender] = Provider({
-            fund: fund,
+            fund: 0,
             info: _infoId,
-            registeredAt: now,
-            delegate: _delegate
+            delegate: _delegate,
+            state: ProviderState.Pending
         });
         delegates[_delegate] = msg.sender;
 
@@ -112,7 +116,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     function topup(uint256 _amount) public {
-        require(providers[msg.sender].registeredAt != 0);
+        require(isActiveState(providers[msg.sender].state));
 
         token.charge(msg.sender, _amount, bytes32('escrow_deposit_topup'));
         providers[msg.sender].fund = providers[msg.sender].fund.add(_amount);
@@ -136,11 +140,16 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         emit Funded(_willId, _provider, _amount);
     }
 
-    function isProviderValid(address _provider) constant public returns (bool) {
-        return minFundForProvider(_provider) <= providers[_provider].fund;
+    function isProviderValid(address _provider) view public returns (bool) {
+        return isActiveState(providers[_provider].state) && minFundForProvider(_provider) <= providers[_provider].fund;
     }
 
-    function providerAddress(address _delegate) constant public returns (address) {
+    function providerAddress(address _delegate) view public returns (address) {
         return delegates[_delegate];
+    }
+
+    // Internal
+    function isActiveState(ProviderState _state) pure internal returns (bool) {
+        return _state == ProviderState.Whitelisted || _state == ProviderState.Activated;
     }
 }

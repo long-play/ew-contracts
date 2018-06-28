@@ -17,6 +17,14 @@ contract('EWillPlatform', function(accounts) {
   const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
   const ewTokenSupply = 100.0e+21;
 
+  const ProviderState = {
+    None: 0,
+    Pending: 1,
+    Whitlisted: 2,
+    Activated: 3,
+    Banned: 4
+  };
+
   const WillState = {
     None: 0,
     Created: 1,
@@ -64,6 +72,8 @@ contract('EWillPlatform', function(accounts) {
     assert.equal(annualProviderFee.toString(), '1000', 'the contract has the wrong Annual Provider Fee');
 
     txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov });
+    txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
+    txResult = await ewEscrow.topup(75.0e+18, { from: prov });
   });
 
   it("should create a will", async () => {

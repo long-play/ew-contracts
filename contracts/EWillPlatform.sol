@@ -331,6 +331,7 @@ contract EWillPlatform is Ownable {
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
 
+/*
     function claimWill(uint256 _willId) public {
         Will storage will = wills[_willId];
         require(will.state == WillState.Pending);
@@ -354,18 +355,10 @@ contract EWillPlatform is Ownable {
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
+*/
 
     // Internal
     function addressKeccak256(address _address) internal pure returns (uint256) {
-        return uint256(keccak256(toBytes(_address)));
-    }
-
-    function toBytes(address a) internal pure returns (bytes b){
-        assembly {
-            let m := mload(0x40)
-            mstore(add(m, 20), xor(0x140000000000000000000000000000000000000000, a))
-            mstore(0x40, add(m, 52))
-            b := m
-        }
+        return uint256(keccak256(abi.encodePacked(_address)));
     }
 }

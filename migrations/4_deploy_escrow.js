@@ -23,8 +23,8 @@ module.exports = function(deployer, network, accounts) {
 
     await deployer.deploy(EWillEscrow, tokenAddress, minDepositAmount);
     const escrow = await EWillEscrow.deployed();
-    await escrow.addWhitelistedProvider(defaultServiceAddress);
     await escrow.register(defaultServiceInfoId, defaultServiceDelegate);
+    await escrow.activateProvider(defaultServiceAddress, 2 /* Whitelisted */);
   });
 
 };

@@ -10,6 +10,14 @@ contract('EWillEscrow', function(accounts) {
   const deleg = accounts[0];
   //todo: add tests for delegating
 
+  const ProviderState = {
+    None: 0,
+    Pending: 1,
+    Whitlisted: 2,
+    Activated: 3,
+    Banned: 4
+  };
+
   let ewToken = null;
   let ewEscrow = null;
 
@@ -36,26 +44,49 @@ contract('EWillEscrow', function(accounts) {
 
   it("should register a provider", async () => {
     let txResult;
+    let isValid;
     txResult = await ewEscrow.register(0xdeadbeaf, deleg, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, prov, 'the provider is registered with the wrong address');
-    //assert.equal(txEvent.args.amount, 5.0e+18, 'the provider is registered with the wrong amount');
 
-    const isValid = await ewEscrow.isProviderValid.call(prov);
-    assert.equal(isValid, true, 'the contract has declined the provider');
+    isValid = await ewEscrow.isProviderValid.call(prov);
+    assert.equal(isValid, false, 'the contract has activated the provider on registration');
+
+    txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
+    txEvent = TestUtils.findEvent(txResult.logs, 'Activated');
+    assert.equal(txEvent.args.provider, prov, 'the provider is registered with the wrong address');
+    assert.equal(txEvent.args.newState, ProviderState.Activated, 'the provider is registered with the wrong state');
+
+    isValid = await ewEscrow.isProviderValid.call(prov);
+    assert.equal(isValid, false, 'the contract has activated the provider before the provider has topuped the balance');
+
+    txResult = await ewEscrow.topup(6.0e+18, { from: prov });
+    txEvent = TestUtils.findEvent(txResult.logs, 'Funded');
+    assert.equal(txEvent.args.willId, 0, 'the provider is funded with the wrong reason'); 
+    assert.equal(txEvent.args.provider, prov, 'the provider is funded with the wrong address');
+    assert.equal(txEvent.args.amount.toString(), '6000000000000000000', 'the provider is funded with the wrong amount');
+
+    isValid = await ewEscrow.isProviderValid.call(prov);
+    assert.equal(isValid, true, 'the contract has not activated the provider');
   });
 
   it("should whitelist a provider", async () => {
     let txResult;
-    txResult = await ewEscrow.addWhitelistedProvider(provwl, { from: admin });
-
-    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: provwl });
+    let isValid;
+    txResult = await ewEscrow.register(0x8badfeed, deleg, { from: provwl });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, provwl, 'the provider is registered with the wrong address');
-    //assert.equal(txEvent.args.amount, 0, 'the provider is registered with the wrong amount');
 
-    const isValid = await ewEscrow.isProviderValid.call(provwl);
-    assert.equal(isValid, true, 'the contract has declined the provider');
+    isValid = await ewEscrow.isProviderValid.call(provwl);
+    assert.equal(isValid, false, 'the contract has activated the provider on registration');
+
+    txResult = await ewEscrow.activateProvider(provwl, ProviderState.Whitlisted, { from: admin });
+    txEvent = TestUtils.findEvent(txResult.logs, 'Activated');
+    assert.equal(txEvent.args.provider, provwl, 'the provider is registered with the wrong address');
+    assert.equal(txEvent.args.newState, ProviderState.Whitlisted, 'the provider is registered with the wrong state');
+
+    isValid = await ewEscrow.isProviderValid.call(provwl);
+    assert.equal(isValid, true, 'the contract has not activated the provider');
   });
 
   it("should allow to topup funds", async () => {
