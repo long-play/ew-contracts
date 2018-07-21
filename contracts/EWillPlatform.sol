@@ -37,7 +37,6 @@ contract EWillPlatform is Ownable {
     mapping (uint256 => uint256[]) public beneficiaryWills;
 
     EWillFinanceIf public financeWallet;
-    EWillAccountIf public accountWallet;
     EWillEscrowIf public escrowWallet;
 
     // Events
@@ -61,9 +60,8 @@ contract EWillPlatform is Ownable {
     }
 
     // Constructor
-    constructor(address _finance, address _account, address _escrow) public {
+    constructor(address _finance, address _escrow) public {
         financeWallet = EWillFinanceIf(_finance);
-        accountWallet = EWillAccountIf(_account);
         escrowWallet = EWillEscrowIf(_escrow);
     }
 

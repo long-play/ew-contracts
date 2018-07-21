@@ -53,7 +53,7 @@ contract('EWillPlatform', function(accounts) {
     ewEscrow = await EWillEscrow.new(ewToken.address, 70);
     ewAccount = await EWillAccount.new(ewToken.address, 1000, admin);
     ewFinance = await EWillFinance.new(PLATFORM_FEE / 2, ewAccount.address, ewEscrow.address, ewToken.address);
-    ewPlatform = await EWillPlatform.new(ewFinance.address, ewAccount.address, ewEscrow.address);
+    ewPlatform = await EWillPlatform.new(ewFinance.address, ewEscrow.address);
 
     await ewFinance.setPlatform(ewPlatform.address);
     await ewAccount.setFinance(ewFinance.address);
