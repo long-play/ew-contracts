@@ -49,10 +49,11 @@ contract('EWillFinance', function(accounts) {
     ewToken = await EWillToken.new(TOKEN_SUPPLY);
     ewEscrow = await EWillEscrow.new(ewToken.address, 70);
     ewAccount = await EWillAccount.new(ewToken.address, 1000, admin);
-    ewFinance = await EWillFinance.new(PLATFORM_FEE / 2, ewAccount.address, ewEscrow.address, plat, ewToken.address);
+    ewFinance = await EWillFinance.new(PLATFORM_FEE / 2, ewAccount.address, ewEscrow.address, ewToken.address);
 
-    await ewEscrow.setPlatform(ewFinance.address);
-    await ewAccount.setPlatform(plat);
+    await ewEscrow.setFinance(ewFinance.address);
+    await ewAccount.setFinance(ewFinance.address);
+    await ewFinance.setPlatform(plat);
     await ewFinance.setOracle(admin);
     await ewToken.transfer(user, 150.0e+18);
     await ewToken.transfer(prov, 150.0e+18);
@@ -73,9 +74,8 @@ contract('EWillFinance', function(accounts) {
     txResult = await ewFinance.setAnnaulPlatformFee(PLATFORM_FEE, { from: admin });
     txResult = await ewFinance.setExchangeRates(RATE_TOKEN, RATE_ETHER, { from: admin });
 
-    const annualFinanceFee = await ewFinance.annualPlatformFee.call();
-    const annualProviderFee = await ewFinance.annualProviderFee.call(prov);
-    assert.equal(annualFinanceFee.toString(), PLATFORM_FEE, 'the contract has the wrong Annual Platform Fee');
+    const annualPlatformFee = await ewFinance.annualPlatformFee.call();
+    assert.equal(annualPlatformFee.toString(), PLATFORM_FEE, 'the contract has the wrong Annual Platform Fee');
 
     txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov });
     txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });

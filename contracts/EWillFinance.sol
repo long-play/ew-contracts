@@ -18,8 +18,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
     // State Variables
     uint256 public annualPlatformFee;                       // annual platform fee in cents
-    //todo: remove annualProviderFee
-    mapping (address => uint256) public annualProviderFee;  // annual provider fee in cents
     uint256 public rateEther;                               // exchange rate, weis per cent
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
@@ -45,12 +43,11 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     // Constructor
-    constructor(uint256 _annualFee, address _account, address _escrow, address _platform, address _token) public {
+    constructor(uint256 _annualFee, address _account, address _escrow, address _token) public {
         annualPlatformFee = _annualFee;
         accountWallet = EWillAccountIf(_account);
         escrowWallet = EWillEscrowIf(_escrow);
         token = EWillTokenIf(_token);
-        platform = _platform;
         oracle = owner;
         rateToken = 1 ether;
         rateEther = 1 ether;
@@ -60,6 +57,11 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     // Configuration
+    function setPlatform(address _platform) public onlyOwner {
+        require(platform == 0x0);
+        platform = _platform;
+    }
+
     function setOracle(address _oracle) public onlyOwner {
         oracle = _oracle;
     }
@@ -88,15 +90,11 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         annualPlatformFee = _fee;
     }
 
-    function setAnnaulProviderFee(uint256 _fee) public {
-        require(_fee > 0);
-        annualProviderFee[msg.sender] = _fee;
-    }
-
     // Public Financing
     function exchangeTokens(uint256 _amount) public {
         require(token.balanceOf(this).add(_amount).mul(20) < token.totalSupply()); // if contract has less than 5% of total supply
 
+        //todo: refactor
         uint256 amount = _amount.mul(100 - exchangeFee).div(100);
         uint256 payout = amount.mul(rateEther).div(rateToken);
         token.charge(msg.sender, _amount, bytes32('token_exchange'));
@@ -135,5 +133,9 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
     function reward(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
         escrowWallet.fund(_provider, _amount, _willId);
+    }
+
+    function centsToTokens(uint256 _cents) public view returns (uint256) {
+        return _cents.mul(rateToken);
     }
 }

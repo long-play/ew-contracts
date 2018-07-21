@@ -26,7 +26,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // State Variables
     uint256 public minProviderFund; // the minimum provider's fund in tokens
-    address public platform;        // platform address
+    address public financeContract; // Finance Contract address
     EWillTokenIf public token;      // token interface
 
     mapping (address => Provider) public providers;
@@ -40,8 +40,8 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     event Withdrew(address provider, uint256 amount);
 
     // Modifiers
-    modifier onlyPlatform {
-        require(msg.sender == platform);
+    modifier onlyFinance {
+        require(msg.sender == financeContract);
         _;
     }
 
@@ -52,9 +52,8 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Configuration
-    function setPlatform(address _platform) public onlyOwner {
-        //???require(platform == 0x0);
-        platform = _platform;
+    function setFinance(address _financeContract) public onlyOwner {
+        financeContract = _financeContract;
     }
 
     function setMinFund(uint256 _minFund) public onlyOwner {
@@ -135,7 +134,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // EWillEscrowIf
-    function fund(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
+    function fund(address _provider, uint256 _amount, uint256 _willId) public onlyFinance {
         require(isProviderValid(_provider) == true);
         providers[_provider].fund = providers[_provider].fund.add(_amount);
         emit Funded(_provider, _amount, _willId);

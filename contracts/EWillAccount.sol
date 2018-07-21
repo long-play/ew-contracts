@@ -22,7 +22,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     string constant public name = 'E-Will Account';
 
     // State Variables
-    uint256 public income;                          // the income of the platform
+    uint256 public income;                          // the income of the Finance Contract
     uint256 public lastPayout;                      // the last time the payout happened at
     uint256 public minParkingAmount;                // min amount of tokens for parking
     uint256 public parkedFund;                      // amount of parked tokens
@@ -33,7 +33,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     uint256 parkedFundCap;                          // amount of parked tokens at the beginning of the current payout
 
     address public accounter;                       // the address for operational expenses
-    address public platform;                        // platform address
+    address public financeContract;                 // Finance Contract address
     EWillTokenIf public token;                      // token interface
     mapping (address => TokenHolder) tokenHolders;  // registered token holders
 
@@ -44,8 +44,8 @@ contract EWillAccount is EWillAccountIf, Ownable {
     event Withdrew(uint256 amount);
 
     // Modifiers
-    modifier onlyPlatform {
-        require(msg.sender == platform);
+    modifier onlyFinance {
+        require(msg.sender == financeContract);
         _;
     }
 
@@ -64,9 +64,9 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // Configuration
-    function setPlatform(address _platform) public onlyOwner {
-        require(platform == 0x0);
-        platform = _platform;
+    function setFinance(address _financeContract) public onlyOwner {
+        require(financeContract == 0x0);
+        financeContract = _financeContract;
     }
 
     function setAccounter(address _accounter) public onlyOwner {
@@ -150,7 +150,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // EWillAccountIf
-    function fund(uint256 _willId, uint256 _amount) public onlyPlatform {
+    function fund(uint256 _willId, uint256 _amount) public onlyFinance {
         income = income.add(_amount);
         emit Funded(_willId, _amount);
     }

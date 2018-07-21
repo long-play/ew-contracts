@@ -1,6 +1,7 @@
 const EWillToken = artifacts.require("EWillToken");
 const EWillEscrow = artifacts.require("EWillEscrow");
 const EWillAccount = artifacts.require("EWillAccount");
+const EWillFinance = artifacts.require("EWillFinance");
 const EWillPlatform = artifacts.require("EWillPlatform");
 const keccak256 = require('js-sha3').keccak256;
 const BN = require('bn.js');
@@ -34,7 +35,15 @@ contract('EWillPlatform', function(accounts) {
     Declined: 5
   };
 
+  const TOKEN_SUPPLY = 100.0e+21;   // 100,000 EWILLs
+  const PLATFORM_FEE = 1500;        // cents, $15
+  const PROVIDER_FEE = 2000;        // cents, $20
+  const REFFERER_RWD = 10;          // %
+  const RATE_TOKEN   = 1.0e+14;     // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER   = 1.0e+13;     // weis per cent, 1000 $/Ether
+
   let ewPlatform = null;
+  let ewFinance = null;
   let ewAccount = null;
   let ewEscrow = null;
   let ewToken = null;
@@ -43,13 +52,15 @@ contract('EWillPlatform', function(accounts) {
     ewToken = await EWillToken.new(ewTokenSupply);
     ewEscrow = await EWillEscrow.new(ewToken.address, 70);
     ewAccount = await EWillAccount.new(ewToken.address, 1000, admin);
-    ewPlatform = await EWillPlatform.new(1, ewAccount.address, ewEscrow.address, ewToken.address);
+    ewFinance = await EWillFinance.new(PLATFORM_FEE / 2, ewAccount.address, ewEscrow.address, ewToken.address);
+    ewPlatform = await EWillPlatform.new(ewFinance.address, ewAccount.address, ewEscrow.address);
 
-    await ewAccount.setPlatform(ewPlatform.address);
-    await ewEscrow.setPlatform(ewPlatform.address);
-    await ewPlatform.setOracle(admin);
+    await ewFinance.setPlatform(ewPlatform.address);
+    await ewAccount.setFinance(ewFinance.address);
+    await ewEscrow.setFinance(ewFinance.address);
+    await ewToken.transfer(user, 15.0e+18);
     await ewToken.transfer(prov, 150.0e+18);
-    await ewToken.transfer(ewPlatform.address, 5.0e+21);
+    await ewToken.transfer(ewFinance.address, 5.0e+21);
 
     const name = await ewPlatform.name.call();
     assert.equal(name, 'E-Will Platform', 'the contract has the wrong name');
@@ -59,14 +70,14 @@ contract('EWillPlatform', function(accounts) {
     let txResult;
     await ewToken.addMerchant(ewEscrow.address);
     await ewToken.addMerchant(ewAccount.address);
-    await ewToken.addMerchant(ewPlatform.address);
+    await ewToken.addMerchant(ewFinance.address);
 
-    txResult = await ewPlatform.setAnnaulPlatformFee(500, { from: admin });
-    txResult = await ewPlatform.setAnnaulProviderFee(1000, { from: prov });
+    txResult = await ewFinance.setAnnaulPlatformFee(500, { from: admin });
     // 1 ether == $1000, 1 EWILL == $100
-    txResult = await ewPlatform.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
+    txResult = await ewFinance.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
+    txResult = await ewPlatform.setAnnaulProviderFee(1000, { from: prov });
 
-    const annualPlatformFee = await ewPlatform.annualPlatformFee.call();
+    const annualPlatformFee = await ewFinance.annualPlatformFee.call();
     const annualProviderFee = await ewPlatform.annualProviderFee.call(prov);
     assert.equal(annualPlatformFee.toString(), '500', 'the contract has the wrong Annual Platform Fee');
     assert.equal(annualProviderFee.toString(), '1000', 'the contract has the wrong Annual Provider Fee');
@@ -82,7 +93,7 @@ contract('EWillPlatform', function(accounts) {
     let benHash = (new BN(benf.slice(2), 16)).toBuffer();
     benHash = new BN(keccak256(benHash), 16);
 
-    txResult = await ewPlatform.createWillWithEther(willId, 0x5108a9e, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
+    txResult = await ewPlatform.createWill(willId, 0x5108a9e, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
     assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');

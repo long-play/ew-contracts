@@ -19,10 +19,10 @@ module.exports = function(deployer, network, accounts) {
     const preTokensale = await EWillPreTokensale.deployed();
     const tokenAddress = await preTokensale.token.call();
 
-    await deployer.deploy(EWillPlatform, annualFee, account.address, escrow.address, tokenAddress);
+    await deployer.deploy(EWillPlatform, 0x0, account.address, escrow.address);
 
-    const platform = await EWillPlatform.deployed();
-    await escrow.setPlatform(platform.address);
-    await account.setPlatform(platform.address);
+    //const platform = await EWillPlatform.deployed();
+    //await escrow.setPlatform(platform.address);
+    //await account.setPlatform(platform.address);
   });
 };

@@ -25,7 +25,7 @@ contract('EWillAccount', function(accounts) {
 
   it("should configure the contract", async () => {
     let txResult;
-    txResult = await ewAccount.setPlatform(admin, { from: admin });
+    txResult = await ewAccount.setFinance(admin, { from: admin });
     txResult = await ewAccount.setMinParkingAmount(15, { from: admin });
 
     const minParkingAmount = await ewAccount.minParkingAmount.call();
