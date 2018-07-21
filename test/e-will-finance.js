@@ -14,6 +14,7 @@ contract('EWillFinance', function(accounts) {
   const prov  = accounts[2];
   const benf  = accounts[3];
   const plat  = accounts[4];
+  const deleg = accounts[5];
 
   const ProviderState = {
     None: 0,
@@ -70,19 +71,15 @@ contract('EWillFinance', function(accounts) {
 
     txResult = await ewFinance.setReferrerDiscount(REFFERER_RWD, { from: admin });
     txResult = await ewFinance.setAnnaulPlatformFee(PLATFORM_FEE, { from: admin });
-    //txResult = await ewFinance.setAnnaulProviderFee(1000, { from: prov }); //todo: remove
     txResult = await ewFinance.setExchangeRates(RATE_TOKEN, RATE_ETHER, { from: admin });
 
     const annualFinanceFee = await ewFinance.annualPlatformFee.call();
     const annualProviderFee = await ewFinance.annualProviderFee.call(prov);
     assert.equal(annualFinanceFee.toString(), PLATFORM_FEE, 'the contract has the wrong Annual Platform Fee');
-    //assert.equal(annualProviderFee.toString(), '1000', 'the contract has the wrong Annual Provider Fee');
 
-/*
     txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov });
     txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
     txResult = await ewEscrow.topup(75.0e+18, { from: prov });
-*/
   });
 
   it("should charge", async () => {

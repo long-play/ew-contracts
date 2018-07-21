@@ -62,7 +62,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     function activateProvider(address _provider, ProviderState _state) public onlyOwner {
-        require(isActiveState(_state));
+        require(isActiveState(_state) == true);
         require(providers[_provider].state == ProviderState.Pending);
 
         providers[_provider].state = _state;
@@ -70,14 +70,14 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     function banProvider(address _provider) public onlyOwner {
-        require(isActiveState(providers[_provider].state));
+        require(isActiveState(providers[_provider].state) == true);
 
         providers[_provider].state = ProviderState.Banned;
         emit Banned(_provider);
     }
 
     function updateProviderInfo(uint256 _newInfoId) public {
-        require(isProviderValid(msg.sender));
+        require(isProviderValid(msg.sender) == true);
 
         providers[msg.sender].info = _newInfoId;
     }
@@ -116,12 +116,12 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     function topup(uint256 _amount) public {
-        require(isActiveState(providers[msg.sender].state));
+        require(isActiveState(providers[msg.sender].state) == true);
 
         token.charge(msg.sender, _amount, bytes32('escrow_deposit_topup'));
         providers[msg.sender].fund = providers[msg.sender].fund.add(_amount);
 
-        emit Funded(0, msg.sender, _amount);
+        emit Funded(msg.sender, _amount, 0);
     }
 
     function withdraw(uint256 _amount) public {
@@ -135,10 +135,10 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // EWillEscrowIf
-    function fund(uint256 _willId, address _provider, uint256 _amount) public onlyPlatform {
-        //todo: require(isProviderValid(_provider) == true);
+    function fund(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
+        require(isProviderValid(_provider) == true);
         providers[_provider].fund = providers[_provider].fund.add(_amount);
-        emit Funded(_willId, _provider, _amount);
+        emit Funded(_provider, _amount, _willId);
     }
 
     function isProviderValid(address _provider) view public returns (bool) {

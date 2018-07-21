@@ -273,7 +273,7 @@ contract EWillPlatform is Ownable {
         will.validTill = now + oneYear;
 
         token.safeTransfer(escrowWallet, activationReward(will));
-        escrowWallet.fund(_willId, will.provider, activationReward(will));
+        escrowWallet.fund(will.provider, activationReward(will), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -292,7 +292,7 @@ contract EWillPlatform is Ownable {
         }
 
         token.safeTransfer(escrowWallet, refreshReward(will));
-        escrowWallet.fund(_willId, will.provider, refreshReward(will));
+        escrowWallet.fund(will.provider, refreshReward(will), _willId);
 
         emit WillRefreshed(_willId, will.owner);
     }
@@ -340,7 +340,7 @@ contract EWillPlatform is Ownable {
         will.state = WillState.Claimed;
 
         token.safeTransfer(escrowWallet, claimReward(will));
-        escrowWallet.fund(_willId, will.provider, claimReward(will));
+        escrowWallet.fund(will.provider, claimReward(will), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }

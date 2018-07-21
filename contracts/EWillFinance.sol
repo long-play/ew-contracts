@@ -23,7 +23,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     uint256 public rateEther;                               // exchange rate, weis per cent
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
-    uint256 public tokenDiscount;                           // discount if paid with tokens, in percent
     uint256 public referrerDiscount;                        // discount if referenced, in percent
 
     EWillAccountIf public accountWallet;
@@ -57,7 +56,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         rateEther = 1 ether;
 
         exchangeFee = 1;
-        tokenDiscount = 0;
         referrerDiscount = 0;
     }
 
@@ -79,15 +77,9 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         exchangeFee = _percent;
     }
 
-    function setTokenDiscount(uint256 _percent) public onlyOwner {
-        require(_percent >= 0);
-        require(_percent < 100 - 2 * referrerDiscount);
-        tokenDiscount = _percent;
-    }
-
     function setReferrerDiscount(uint256 _percent) public onlyOwner {
         require(_percent >= 0);
-        require(_percent < 100 - tokenDiscount - referrerDiscount);
+        require(_percent < 50);
         referrerDiscount = _percent;
     }
 
@@ -142,6 +134,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     function reward(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
-        escrowWallet.fund(_willId, _provider, _amount);
+        escrowWallet.fund(_provider, _amount, _willId);
     }
 }
