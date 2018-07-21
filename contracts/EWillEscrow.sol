@@ -136,6 +136,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // EWillEscrowIf
     function fund(uint256 _willId, address _provider, uint256 _amount) public onlyPlatform {
+        //todo: require(isProviderValid(_provider) == true);
         providers[_provider].fund = providers[_provider].fund.add(_amount);
         emit Funded(_willId, _provider, _amount);
     }

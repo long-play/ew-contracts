@@ -3,10 +3,10 @@ pragma solidity ^0.4.24;
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/DetailedERC20.sol';
 import 'zeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
-//import './EWillTokenIf.sol'; // removed due to a bug of truffle - https://github.com/trufflesuite/truffle/issues/593
+import './EWillTokenIf.sol';
 
 
-contract EWillToken is /*EWillTokenIf,*/ Ownable, DetailedERC20('E-Will Token', 'EWILL', 18), StandardToken {
+contract EWillToken is EWillTokenIf, Ownable, DetailedERC20('E-Will Token', 'EWILL', 18), StandardToken {
     // State Variables
     mapping (address => uint256)  public merchants;
 

@@ -1,0 +1,147 @@
+pragma solidity ^0.4.24;
+
+import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+import './EWillFinanceIf.sol';
+import './EWillAccountIf.sol';
+import './EWillEscrowIf.sol';
+import './EWillTokenIf.sol';
+
+
+contract EWillFinance is EWillFinanceIf, Ownable {
+    using SafeMath for uint256;
+    using SafeERC20 for EWillTokenIf;
+
+    // Constants
+    string constant public name = 'E-Will Finance';
+
+    // State Variables
+    uint256 public annualPlatformFee;                       // annual platform fee in cents
+    //todo: remove annualProviderFee
+    mapping (address => uint256) public annualProviderFee;  // annual provider fee in cents
+    uint256 public rateEther;                               // exchange rate, weis per cent
+    uint256 public rateToken;                               // exchange rate, tokenweis per cent
+    uint256 public exchangeFee;                             // exchanging token->ether fee in percent
+    uint256 public tokenDiscount;                           // discount if paid with tokens, in percent
+    uint256 public referrerDiscount;                        // discount if referenced, in percent
+
+    EWillAccountIf public accountWallet;
+    EWillEscrowIf public escrowWallet;
+    EWillTokenIf public token;
+    address public platform;
+    address public oracle;
+
+    // Events
+
+    // Modifiers
+    modifier onlyOracle {
+        require(msg.sender == oracle);
+        _;
+    }
+
+    modifier onlyPlatform {
+        require(msg.sender == platform);
+        _;
+    }
+
+    // Constructor
+    constructor(uint256 _annualFee, address _account, address _escrow, address _platform, address _token) public {
+        annualPlatformFee = _annualFee;
+        accountWallet = EWillAccountIf(_account);
+        escrowWallet = EWillEscrowIf(_escrow);
+        token = EWillTokenIf(_token);
+        platform = _platform;
+        oracle = owner;
+        rateToken = 1 ether;
+        rateEther = 1 ether;
+
+        exchangeFee = 1;
+        tokenDiscount = 0;
+        referrerDiscount = 0;
+    }
+
+    // Configuration
+    function setOracle(address _oracle) public onlyOwner {
+        oracle = _oracle;
+    }
+
+    function setExchangeRates(uint256 _token, uint256 _ether) public onlyOracle {
+        require(_token > 0);
+        require(_ether > 0);
+        rateToken = _token;
+        rateEther = _ether;
+    }
+
+    function setExchangeFee(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100);
+        exchangeFee = _percent;
+    }
+
+    function setTokenDiscount(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100 - 2 * referrerDiscount);
+        tokenDiscount = _percent;
+    }
+
+    function setReferrerDiscount(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100 - tokenDiscount - referrerDiscount);
+        referrerDiscount = _percent;
+    }
+
+    function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
+        require(_fee > 0);
+        annualPlatformFee = _fee;
+    }
+
+    function setAnnaulProviderFee(uint256 _fee) public {
+        require(_fee > 0);
+        annualProviderFee[msg.sender] = _fee;
+    }
+
+    // Public Financing
+    function exchangeTokens(uint256 _amount) public {
+        require(token.balanceOf(this).add(_amount).mul(20) < token.totalSupply()); // if contract has less than 5% of total supply
+
+        uint256 amount = _amount.mul(100 - exchangeFee).div(100);
+        uint256 payout = amount.mul(rateEther).div(rateToken);
+        token.charge(msg.sender, _amount, bytes32('token_exchange'));
+        msg.sender.transfer(payout);
+    }
+
+    function charge(address _customer, uint256 _providerFee, address _referrer, bytes32 _note) public payable onlyPlatform {
+        // check if needs to reward a referrer
+        uint256 refReward = 0;
+        if (address(0) != _referrer) {
+            refReward = annualPlatformFee.mul(referrerDiscount).div(100);
+        }
+
+        // buy tokens
+        if (msg.value > 0) {
+            //todo: buy `fee` tokens for the msg.value
+            //token.safeTransfer(_customer, amount); 
+        }
+
+        // charge fee in tokens
+        uint256 fee = _providerFee.add(annualPlatformFee).sub(refReward).mul(rateToken);
+        token.charge(_customer, fee, _note);
+
+        // reward the referrer
+        if (refReward > 0) {
+            token.safeTransfer(_referrer, refReward.mul(rateToken));
+        }
+
+        // transfer profit to the account wallet
+        uint256 profit = annualPlatformFee.sub(refReward).sub(refReward).mul(rateToken);
+        token.safeTransfer(accountWallet, profit);
+
+        // transfer the rest to the escrow wallet
+        token.safeTransfer(escrowWallet, fee.sub(refReward.mul(rateToken)).sub(profit));
+    }
+
+    function reward(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
+        escrowWallet.fund(_willId, _provider, _amount);
+    }
+}
