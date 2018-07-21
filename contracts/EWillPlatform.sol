@@ -55,7 +55,7 @@ contract EWillPlatform is Ownable {
     modifier onlyProvider(uint256 _willId) {
         Will storage will = wills[_willId];
         address provider = escrowWallet.providerAddress(msg.sender);
-        require(/*todo: remove provider, the delegate only*/will.provider == msg.sender || will.provider == provider);
+        require(will.provider == provider);
         _;
     }
 
@@ -140,7 +140,7 @@ contract EWillPlatform is Ownable {
         will.updatedAt = now;
         will.validTill = now + oneYear;
 
-        financeWallet.reward(msg.sender, activatingReward(will.annualFee), _willId);
+        financeWallet.reward(will.provider, activatingReward(will.annualFee), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -151,14 +151,13 @@ contract EWillPlatform is Ownable {
         //todo: how to calc over the year
         require(will.updatedAt + 30 days < now);
 
-        will.updatedAt = now;
-
         if (will.newFee > 0) {
             will.annualFee = will.newFee;
             will.newFee = 0;
         }
 
-        financeWallet.reward(msg.sender, refreshingReward(will.annualFee), _willId);
+        will.updatedAt = now;
+        financeWallet.reward(will.provider, refreshingReward(will.annualFee), _willId);
 
         emit WillRefreshed(_willId, will.owner);
     }
@@ -201,7 +200,7 @@ contract EWillPlatform is Ownable {
         require(addressKeccak256(msg.sender) == will.beneficiaryHash);
 
         will.state = WillState.Claimed;
-        financeWallet.reward(msg.sender, claimingReward(will.annualFee), _willId);
+        financeWallet.reward(will.provider, claimingReward(will.annualFee), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }

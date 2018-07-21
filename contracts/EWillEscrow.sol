@@ -126,6 +126,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     function withdraw(uint256 _amount) public {
         uint256 remain = providers[msg.sender].fund.sub(_amount);
         require(minFundForProvider(msg.sender) <= remain);
+        require(isProviderValid(msg.sender) == true);
 
         providers[msg.sender].fund = remain;
         token.safeTransfer(msg.sender, _amount);
@@ -135,7 +136,6 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     // EWillEscrowIf
     function fund(address _provider, uint256 _amount, uint256 _willId) public onlyFinance {
-        require(isProviderValid(_provider) == true);
         providers[_provider].fund = providers[_provider].fund.add(_amount);
         emit Funded(_provider, _amount, _willId);
     }

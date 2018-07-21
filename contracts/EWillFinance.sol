@@ -110,8 +110,8 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
         // buy tokens
         if (msg.value > 0) {
-            //todo: buy `fee` tokens for the msg.value
-            //token.safeTransfer(_customer, amount); 
+            uint256 amount = msg.value.mul(rateToken).div(rateEther);
+            token.safeTransfer(_customer, amount);
         }
 
         // charge fee in tokens

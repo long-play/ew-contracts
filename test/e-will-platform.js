@@ -12,8 +12,7 @@ contract('EWillPlatform', function(accounts) {
   const user  = accounts[1];
   const prov  = accounts[2];
   const benf  = accounts[3];
-  const deleg = accounts[0];
-  //todo: add tests for delegating
+  const deleg = accounts[4];
 
   const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
   const ewTokenSupply = 100.0e+21;
@@ -108,7 +107,7 @@ contract('EWillPlatform', function(accounts) {
   it("should activate the will", async () => {
     let txResult, txEvent;
 
-    txResult = await ewPlatform.activateWill(willId, { from: prov });
+    txResult = await ewPlatform.activateWill(willId, { from: deleg });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
     assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -118,7 +117,7 @@ contract('EWillPlatform', function(accounts) {
   it("should apply the will", async () => {
     let txResult, txEvent;
 
-    txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: prov });
+    txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
     assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -150,7 +149,7 @@ contract('EWillPlatform', function(accounts) {
     let txResult, txEvent;
 
     try {
-      txResult = await ewPlatform.declineWill(willId, { from: prov });
+      txResult = await ewPlatform.declineWill(willId, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       assert.isNull(txEvent, 'the will declined although should not');
     } catch (err) {

@@ -58,7 +58,7 @@ contract('EWillFinance', function(accounts) {
     await ewToken.transfer(user, 150.0e+18);
     await ewToken.transfer(prov, 150.0e+18);
     await ewToken.transfer(plat, 100.0e+18);
-    await ewToken.transfer(ewFinance.address, 5.0e+21);
+    await ewToken.transfer(ewFinance.address, 15.0e+18);
 
     const name = await ewFinance.name.call();
     assert.equal(name, 'E-Will Finance', 'the contract has the wrong name');
@@ -90,7 +90,7 @@ contract('EWillFinance', function(accounts) {
     const bAccount = await ewToken.balanceOf(ewAccount.address);
     const bEscrow = await ewToken.balanceOf(ewEscrow.address);
 
-    txResult = await ewFinance.charge(plat, PROVIDER_FEE, 0, '0', { from: plat, value: 1.0e+15 });
+    txResult = await ewFinance.charge(plat, PROVIDER_FEE, 0, 'tokens', { from: plat, value: 0 });
 
     assert.equal(bPlatform - await ewToken.balanceOf(plat), (PLATFORM_FEE + PROVIDER_FEE) * RATE_TOKEN, '');
     assert.equal(await ewToken.balanceOf(ewFinance.address) - bFinance, 0, '');
@@ -98,7 +98,26 @@ contract('EWillFinance', function(accounts) {
     assert.equal(await ewToken.balanceOf(ewEscrow.address) - bEscrow, PROVIDER_FEE * RATE_TOKEN, '');
   });
 
-  it("should charge with reference reward", async () => {
+  it("should charge with ethers", async () => {
+    let txResult, txEvent;
+
+    const ETH_VALUE = 7.0e+15;
+    const ePlatform = await TestUtils.getBalance(ewFinance.address);
+    const bPlatform = await ewToken.balanceOf(plat);
+    const bFinance = await ewToken.balanceOf(ewFinance.address);
+    const bAccount = await ewToken.balanceOf(ewAccount.address);
+    const bEscrow = await ewToken.balanceOf(ewEscrow.address);
+
+    txResult = await ewFinance.charge(plat, PROVIDER_FEE, 0, 'ethers', { from: plat, value: ETH_VALUE });
+
+    assert.equal(await TestUtils.getBalance(ewFinance.address) - ePlatform, ETH_VALUE, '');
+    assert.equal(bPlatform - await ewToken.balanceOf(plat), (PLATFORM_FEE + PROVIDER_FEE - ETH_VALUE / RATE_ETHER) * RATE_TOKEN, '');
+    assert.equal(bFinance - await ewToken.balanceOf(ewFinance.address), ETH_VALUE / RATE_ETHER * RATE_TOKEN, '');
+    assert.equal(await ewToken.balanceOf(ewAccount.address) - bAccount, PLATFORM_FEE * RATE_TOKEN, '');
+    assert.equal(await ewToken.balanceOf(ewEscrow.address) - bEscrow, PROVIDER_FEE * RATE_TOKEN, '');
+  });
+
+  it("should charge with referrer reward", async () => {
     let txResult, txEvent;
 
     const bReferrer = await ewToken.balanceOf(benf);
@@ -107,7 +126,7 @@ contract('EWillFinance', function(accounts) {
     const bAccount = await ewToken.balanceOf(ewAccount.address);
     const bEscrow = await ewToken.balanceOf(ewEscrow.address);
 
-    txResult = await ewFinance.charge(plat, PROVIDER_FEE, benf, '0', { from: plat, value: 1.0e+15 });
+    txResult = await ewFinance.charge(plat, PROVIDER_FEE, benf, 'referref', { from: plat, value: 0 });
 
     const refReward = PLATFORM_FEE * REFFERER_RWD / 100;
     assert.equal(await ewToken.balanceOf(benf) - bReferrer, refReward * RATE_TOKEN, '');

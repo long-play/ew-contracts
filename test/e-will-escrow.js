@@ -8,7 +8,6 @@ contract('EWillEscrow', function(accounts) {
   const prov  = accounts[2];
   const provwl= accounts[3];
   const deleg = accounts[0];
-  //todo: add tests for delegating
 
   const ProviderState = {
     None: 0,
