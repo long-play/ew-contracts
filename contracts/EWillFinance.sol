@@ -21,6 +21,7 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     uint256 public rateEther;                               // exchange rate, weis per cent
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
+    uint256 public exchangeLimit;                           // exchanging limit, in percent of total supply
     uint256 public referrerDiscount;                        // discount if referenced, in percent
 
     EWillAccountIf public accountWallet;
@@ -52,7 +53,8 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         rateToken = 1 ether;
         rateEther = 1 ether;
 
-        exchangeFee = 1;
+        exchangeFee = 5;
+        exchangeLimit = 5;
         referrerDiscount = 0;
     }
 
@@ -79,6 +81,12 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         exchangeFee = _percent;
     }
 
+    function setExchangeLimit(uint256 _percent) public onlyOwner {
+        require(_percent >= 0);
+        require(_percent < 100);
+        exchangeLimit = _percent;
+    }
+
     function setReferrerDiscount(uint256 _percent) public onlyOwner {
         require(_percent >= 0);
         require(_percent < 50);
@@ -92,9 +100,8 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
     // Public Financing
     function exchangeTokens(uint256 _amount) public {
-        require(token.balanceOf(this).add(_amount).mul(20) < token.totalSupply()); // if contract has less than 5% of total supply
+        require(token.balanceOf(this).add(_amount) <= token.totalSupply().mul(exchangeLimit).div(100));
 
-        //todo: refactor
         uint256 amount = _amount.mul(100 - exchangeFee).div(100);
         uint256 payout = amount.mul(rateEther).div(rateToken);
         token.charge(msg.sender, _amount, bytes32('token_exchange'));
