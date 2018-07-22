@@ -39,6 +39,7 @@ contract('EWillFinance', function(accounts) {
   const REFFERER_RWD = 10;          // %
   const RATE_TOKEN   = 1.0e+14;     // tokenweis per cent, 100 $/EWILL
   const RATE_ETHER   = 1.0e+13;     // weis per cent, 1000 $/Ether
+  const EXCHG_FEE    = 5;           // %
 
   let ewFinance = null;
   let ewAccount = null;
@@ -73,6 +74,7 @@ contract('EWillFinance', function(accounts) {
     txResult = await ewFinance.setReferrerDiscount(REFFERER_RWD, { from: admin });
     txResult = await ewFinance.setAnnaulPlatformFee(PLATFORM_FEE, { from: admin });
     txResult = await ewFinance.setExchangeRates(RATE_TOKEN, RATE_ETHER, { from: admin });
+    txResult = await ewFinance.setExchangeFee(EXCHG_FEE, { from: admin });
 
     const annualPlatformFee = await ewFinance.annualPlatformFee.call();
     assert.equal(annualPlatformFee.toString(), PLATFORM_FEE, 'the contract has the wrong Annual Platform Fee');
@@ -140,6 +142,20 @@ contract('EWillFinance', function(accounts) {
     let txResult, txEvent;
 
     txResult = await ewFinance.reward(prov, 1500, 0, { from: plat });
+  });
+
+  it("should exchange the tokens", async () => {
+    let txResult, txEvent;
+
+    const TKN_VALUE = 5.0e+15;
+    const bUser = await ewToken.balanceOf(user);
+    const bFinance = await ewToken.balanceOf(ewFinance.address);
+    const eFinance = await TestUtils.getBalance(ewFinance.address);
+
+    txResult = await ewFinance.exchangeTokens(TKN_VALUE, { from: user });
+    assert.equal(bUser - await ewToken.balanceOf(user), TKN_VALUE, '');
+    assert.equal(await ewToken.balanceOf(ewFinance.address) - bFinance, TKN_VALUE, '');
+    assert.equal(eFinance - await TestUtils.getBalance(ewFinance.address), TKN_VALUE * ((100 - EXCHG_FEE) / 100) * (RATE_ETHER / RATE_TOKEN), '');
   });
 
 });
