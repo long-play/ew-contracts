@@ -15,19 +15,19 @@ contract EWillPlatform is Ownable {
         uint256     storageId;
         uint256     annualFee;
         uint256     newFee;
+        uint256     activationFee;
         uint256     beneficiaryHash;
         uint256     decryptionKey;
         address     owner;
-        WillState   state;
-        uint256     createdAt;
-        uint256     updatedAt;
-        uint256     validTill;
+        uint64      updatedAt;
         address     provider;
+        uint64      validTill;
+        WillState   state;
     }
 
     // Constants
     string constant public name = 'E-Will Platform';
-    uint256 constant private oneYear = 365 days;
+    uint64 constant private oneYear = uint64(365 days);
 
     // State Variables
     mapping (address => uint256) public annualProviderFee;  // annual provider fee in cents
@@ -116,12 +116,12 @@ contract EWillPlatform is Ownable {
             storageId: _storageId,
             annualFee: financeWallet.centsToTokens(fee),
             newFee: 0,
+            activationFee: financeWallet.centsToTokens(activatingReward(fee)),
             owner: msg.sender,
             state: WillState.Created,
             beneficiaryHash: _beneficiaryHash,
             decryptionKey: 0,
-            createdAt: now,
-            updatedAt: now,
+            updatedAt: currentTime(),
             validTill: 0,
             provider: _provider
         });
@@ -137,8 +137,8 @@ contract EWillPlatform is Ownable {
         require(will.state == WillState.Created);
 
         will.state = WillState.Activated;
-        will.updatedAt = now;
-        will.validTill = now + oneYear;
+        will.updatedAt = currentTime();
+        will.validTill = currentTime() + oneYear;
 
         financeWallet.reward(will.provider, activatingReward(will.annualFee), _willId);
 
@@ -149,14 +149,14 @@ contract EWillPlatform is Ownable {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         //todo: how to calc over the year
-        require(will.updatedAt + 30 days < now);
+        require(currentTime() - will.updatedAt > 30 days);
 
         if (will.newFee > 0) {
             will.annualFee = will.newFee;
             will.newFee = 0;
         }
 
-        will.updatedAt = now;
+        will.updatedAt = currentTime();
         financeWallet.reward(will.provider, refreshingReward(will.annualFee), _willId);
 
         emit WillRefreshed(_willId, will.owner);
@@ -166,7 +166,7 @@ contract EWillPlatform is Ownable {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         // allow to prolong the will in the last month of the previous subscription only
-        require(will.validTill < now + 30 days); 
+        require(will.validTill < currentTime() + 30 days);
 
         // charge the user and distribute the fee
         uint256 fee = annualProviderFee[will.provider];
@@ -186,7 +186,7 @@ contract EWillPlatform is Ownable {
 
         will.decryptionKey = _decryptionKey;
         will.state = WillState.Pending;
-        will.updatedAt = now;
+        will.updatedAt = currentTime();
         beneficiaryWills[will.beneficiaryHash].push(_willId);
 
         //todo: send a small amount of ethers to the beneficiary
@@ -208,10 +208,10 @@ contract EWillPlatform is Ownable {
     function rejectWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
-        require(will.validTill < now);
+        require(will.validTill < currentTime());
 
         will.state = WillState.Rejected;
-        will.updatedAt = now;
+        will.updatedAt = currentTime();
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -219,5 +219,9 @@ contract EWillPlatform is Ownable {
     // Internal
     function addressKeccak256(address _address) internal pure returns (uint256) {
         return uint256(keccak256(abi.encodePacked(_address)));
+    }
+
+    function currentTime() internal view returns (uint64) {
+        return uint64(now);
     }
 }
