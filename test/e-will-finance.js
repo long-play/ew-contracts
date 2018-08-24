@@ -79,7 +79,7 @@ contract('EWillFinance', function(accounts) {
     const annualPlatformFee = await ewFinance.annualPlatformFee.call();
     assert.equal(annualPlatformFee.toString(), PLATFORM_FEE, 'the contract has the wrong Annual Platform Fee');
 
-    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov });
+    txResult = await ewEscrow.register(PROVIDER_FEE, 0x0badfeed, deleg, { from: prov });
     txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
     txResult = await ewEscrow.topup(75.0e+18, { from: prov });
   });

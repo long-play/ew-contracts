@@ -30,8 +30,6 @@ contract EWillPlatform is Ownable {
     uint64 constant private oneYear = uint64(365 days);
 
     // State Variables
-    mapping (address => uint256) public annualProviderFee;  // annual provider fee in cents
-
     mapping (uint256 => Will) public wills;
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
@@ -63,11 +61,6 @@ contract EWillPlatform is Ownable {
     constructor(address _finance, address _escrow) public {
         financeWallet = EWillFinanceIf(_finance);
         escrowWallet = EWillEscrowIf(_escrow);
-    }
-
-    // Configuration
-    function setAnnaulProviderFee(uint256 _fee) public {
-        annualProviderFee[msg.sender] = _fee;
     }
 
     // Finance calculations
@@ -107,7 +100,8 @@ contract EWillPlatform is Ownable {
         require(address(_willId >> 96) == _provider);
 
         // charge the user and distribute the fee
-        uint256 fee = annualProviderFee[_provider];
+        uint256 fee;
+        (fee, ) = escrowWallet.providerInfo(_provider);
         financeWallet.charge.value(msg.value)(msg.sender, creatingFee(fee), _referrer, bytes32(_willId));
 
         // create the will
@@ -169,7 +163,8 @@ contract EWillPlatform is Ownable {
         require(will.validTill < currentTime() + 30 days);
 
         // charge the user and distribute the fee
-        uint256 fee = annualProviderFee[will.provider];
+        uint256 fee;
+        (fee, ) = escrowWallet.providerInfo(will.provider);
         financeWallet.charge.value(msg.value)(msg.sender, prolongingFee(fee), 0x0, bytes32(_willId));
 
         // update the will

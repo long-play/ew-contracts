@@ -74,14 +74,11 @@ contract('EWillPlatform', function(accounts) {
     txResult = await ewFinance.setAnnaulPlatformFee(500, { from: admin });
     // 1 ether == $1000, 1 EWILL == $100
     txResult = await ewFinance.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
-    txResult = await ewPlatform.setAnnaulProviderFee(1000, { from: prov });
 
     const annualPlatformFee = await ewFinance.annualPlatformFee.call();
-    const annualProviderFee = await ewPlatform.annualProviderFee.call(prov);
     assert.equal(annualPlatformFee.toString(), '500', 'the contract has the wrong Annual Platform Fee');
-    assert.equal(annualProviderFee.toString(), '1000', 'the contract has the wrong Annual Provider Fee');
 
-    txResult = await ewEscrow.register(0x0badfeed, deleg, { from: prov });
+    txResult = await ewEscrow.register(1000, 0x0badfeed, deleg, { from: prov });
     txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
     txResult = await ewEscrow.topup(75.0e+18, { from: prov });
   });

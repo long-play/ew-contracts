@@ -12,9 +12,8 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     using SafeERC20 for EWillTokenIf;
 
     // Custom Types
-    enum ProviderState { None, Pending, Whitelisted, Activated, Banned }
-
     struct Provider {
+        uint256         annualFee;
         uint256         fund;
         uint256         info;
         address         delegate;
@@ -75,9 +74,10 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         emit Banned(_provider);
     }
 
-    function updateProviderInfo(uint256 _newInfoId) public {
+    function updateProviderInfo(uint256 _annualFee, uint256 _newInfoId) public {
         require(isProviderValid(msg.sender) == true);
 
+        providers[msg.sender].annualFee = _annualFee;
         providers[msg.sender].info = _newInfoId;
     }
 
@@ -87,12 +87,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Escrow
-    function register(uint256 _infoId, address _delegate) public {
+    function register(uint256 _annualFee, uint256 _infoId, address _delegate) public {
         require(providers[msg.sender].state == ProviderState.None);
         require(_delegate != 0);
         require(_delegate != msg.sender);
 
         providers[msg.sender] = Provider({
+            annualFee: _annualFee,
             fund: 0,
             info: _infoId,
             delegate: _delegate,
@@ -146,6 +147,14 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
     function providerAddress(address _delegate) view public returns (address) {
         return delegates[_delegate];
+    }
+
+    function providerInfo(address _provider) view public returns (uint256 annualFee, uint256 info, address delegate, ProviderState state) {
+        Provider storage provider = providers[_provider];
+        annualFee = provider.annualFee;
+        info = provider.info;
+        delegate = provider.delegate;
+        state = provider.state;
     }
 
     // Internal

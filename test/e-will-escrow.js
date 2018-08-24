@@ -17,6 +17,8 @@ contract('EWillEscrow', function(accounts) {
     Banned: 4
   };
 
+  const annualFee = 1500;
+
   let ewToken = null;
   let ewEscrow = null;
 
@@ -44,7 +46,7 @@ contract('EWillEscrow', function(accounts) {
   it("should register a provider", async () => {
     let txResult;
     let isValid;
-    txResult = await ewEscrow.register(0xdeadbeaf, deleg, { from: prov });
+    txResult = await ewEscrow.register(annualFee, 0xdeadbeaf, deleg, { from: prov });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, prov, 'the provider is registered with the wrong address');
 
@@ -72,7 +74,7 @@ contract('EWillEscrow', function(accounts) {
   it("should whitelist a provider", async () => {
     let txResult;
     let isValid;
-    txResult = await ewEscrow.register(0x8badfeed, deleg, { from: provwl });
+    txResult = await ewEscrow.register(annualFee, 0x8badfeed, deleg, { from: provwl });
     txEvent = TestUtils.findEvent(txResult.logs, 'Registered');
     assert.equal(txEvent.args.provider, provwl, 'the provider is registered with the wrong address');
 
