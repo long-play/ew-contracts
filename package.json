@@ -12,7 +12,12 @@
     "js-sha3": "^0.7.0"
   },
   "scripts": {
-    "test": "truffle test --network=test"
+    "test": "truffle test",
+    "build": "truffle compile",
+    "clean": "rm -rf build",
+    "deploy": "truffle migrate --network staging --reset",
+    "deployc": "truffle migrate --network staging",
+    "abi": "node abi.js"
   },
   "main": "",
   "repository": {

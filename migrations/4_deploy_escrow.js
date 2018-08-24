@@ -1,7 +1,7 @@
 const EWillPreTokensale = artifacts.require("./EWillPreTokensale.sol");
 const EWillEscrow = artifacts.require("./EWillEscrow.sol");
 
-module.exports = function(deployer, network, accounts) {
+module.exports = function(deployer, network, [owner, tech]) {
   let minDepositAmount = 0;
   let defaultAnnualFee = 0;
   let defaultServiceInfoId = '0x0';
@@ -9,11 +9,11 @@ module.exports = function(deployer, network, accounts) {
   let defaultServiceDelegate = '0x0';
 
   if (network == 'test' || network == 'staging') {
-    minDepositAmount = 100; // ethers
-    defaultAnnualFee = 1500; // 1500 cents == $15
-    defaultServiceAddress = accounts[0];
-    defaultServiceDelegate = '0xdeadbeaf';
-    defaultServiceInfoId = '0x97f7bf3b6105d5aff5add3636756274b58bb80d8e2ddf9b98334380c39613649';
+    minDepositAmount = 100; // EWILL tokens
+    defaultAnnualFee = 1500; // 1500 cents == $15.00
+    defaultServiceAddress = owner;
+    defaultServiceDelegate = tech;
+    defaultServiceInfoId = '0x28e9392bcff01ac30b788cdd176f3c63da08d258816b341d85c47dbfff53557f';
   }
   else {
     throw new Error('not implemented');
