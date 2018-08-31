@@ -10,8 +10,8 @@ module.exports = function(deployer, network) {
     startDate = now + 10;
     endDate = now + 100;
   } else if (network == 'staging') {
-    const now = Date.now() ;// 1000;
-    startDate = now + 10;
+    const now = Date.now() / 1000;
+    startDate = now + 100;
     endDate = now + 1000;
   } else {
     startDate = Date.parse('01/15/2018 15:15:15');

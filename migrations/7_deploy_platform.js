@@ -14,5 +14,7 @@ module.exports = function(deployer, network, accounts) {
     const finance = await EWillFinance.deployed();
 
     await deployer.deploy(EWillPlatform, finance.address, escrow.address);
+
+    finance.setPlatform(EWillPlatform.address);
   });
 };

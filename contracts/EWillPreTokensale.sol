@@ -11,7 +11,7 @@ contract EWillPreTokensale is Ownable {
 
     // Constants
     string constant public name = "E-Will Pre-Tokensale";
-    uint256 constant public tokenTotalSupply = 100000 * 1 ether;
+    uint256 constant public tokenTotalSupply = 10000000 * 1 ether;
     uint256 constant public preTokenSaleCap  = tokenTotalSupply / 20;
     uint256 constant public devTokenShare    = tokenTotalSupply / 2;
     uint256 constant public minContribution  = 1 * 1 ether;
@@ -36,19 +36,22 @@ contract EWillPreTokensale is Ownable {
     }
 
     modifier isSaleActive() {
-        require(now >= startDate && now <= endDate && collected < preTokenSaleCap);
+        require(now >= startDate);
+        require(now <= endDate);
+        require(collected < preTokenSaleCap);
         _;
     }
 
     modifier isAcceptableAmount(uint256 _contribution) {
-        require(_contribution >= minContribution && _contribution <= maxContribution);
+        require(_contribution >= minContribution);
+        require(_contribution <= maxContribution);
         _;
     }
 
     // Constructor
     constructor(uint256 _rate, uint256 _startDate, uint256 _endDate) public {
         require(_rate > 0);
-        require(_startDate > now);
+        require(_startDate >= now);
         require(_endDate > _startDate);
         token = new EWillToken(tokenTotalSupply);
         rate = _rate;
