@@ -3,7 +3,7 @@ const EWillFinance = artifacts.require("./EWillFinance.sol");
 const EWillPlatform = artifacts.require("./EWillPlatform.sol");
 
 module.exports = function(deployer, network, accounts) {
-  if (network == 'test' || network == 'staging') {
+  if (network == 'test' || network == 'staging' || network == 'alpha') {
   }
   else {
     throw new Error('not implemented');

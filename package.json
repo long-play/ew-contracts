@@ -1,7 +1,7 @@
 {
   "name": "w-platform-contract",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "The smart-contract for the Platform for the service of digital willing",
   "keywords": [],
   "dependencies": {
@@ -15,8 +15,10 @@
     "test": "truffle test",
     "build": "truffle compile",
     "clean": "rm -rf build",
-    "deploy": "truffle migrate --network staging --reset",
-    "deployc": "truffle migrate --network staging",
+    "deploys": "truffle migrate --network staging --reset",
+    "deploysc": "truffle migrate --network staging",
+    "deploya": "truffle migrate --network alpha --reset",
+    "deployac": "truffle migrate --network alpha",
     "abi": "node abi.js"
   },
   "main": "",

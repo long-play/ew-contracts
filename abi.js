@@ -12,4 +12,4 @@ function makeABIs(contractNames) {
     }
 }
 
-makeABIs(['account', 'escrow', 'finance', 'platform', 'pretokensale', 'tokensale', 'token']);
+makeABIs(['account', 'escrow', 'finance', 'platform', 'token']);
