@@ -99,6 +99,33 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     // Public Financing
+    function platformFee() public view returns (uint256) {
+        return annualPlatformFee;
+    }
+
+    function totalFee(uint256 _providerFee, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
+        if (_referrer) {
+            refReward = annualPlatformFee.mul(referrerDiscount).div(100);
+        }
+        fee = _providerFee.add(annualPlatformFee).sub(refReward);
+    }
+
+    function totalFeeEthers(uint256 _providerFee, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
+        (fee, refReward) = totalFee(_providerFee, _referrer);
+        fee = fee.mul(rateEther);
+        refReward = refReward.mul(rateEther);
+    }
+
+    function totalFeeTokens(uint256 _providerFee, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
+        (fee, refReward) = totalFee(_providerFee, _referrer);
+        fee = fee.mul(rateToken);
+        refReward = refReward.mul(rateToken);
+    }
+
+    function centsToTokens(uint256 _cents) public view returns (uint256) {
+        return _cents.mul(rateToken);
+    }
+
     function exchangeTokens(uint256 _amount) public {
         require(token.balanceOf(this).add(_amount) <= token.totalSupply().mul(exchangeLimit).div(100));
 
@@ -109,11 +136,10 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     function charge(address _customer, uint256 _providerFee, address _referrer, bytes32 _note) public payable onlyPlatform {
-        // check if needs to reward a referrer
+        // get the fee amounts
         uint256 refReward = 0;
-        if (address(0) != _referrer) {
-            refReward = annualPlatformFee.mul(referrerDiscount).div(100);
-        }
+        uint256 fee = 0;
+        (fee, refReward) = totalFeeTokens(_providerFee, address(0) != _referrer);
 
         // buy tokens
         if (msg.value > 0) {
@@ -122,27 +148,22 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         }
 
         // charge fee in tokens
-        uint256 fee = _providerFee.add(annualPlatformFee).sub(refReward).mul(rateToken);
         token.charge(_customer, fee, _note);
 
         // reward the referrer
         if (refReward > 0) {
-            token.safeTransfer(_referrer, refReward.mul(rateToken));
+            token.safeTransfer(_referrer, refReward);
         }
 
         // transfer profit to the account wallet
-        uint256 profit = annualPlatformFee.sub(refReward).sub(refReward).mul(rateToken);
+        uint256 profit = annualPlatformFee.mul(rateToken).sub(refReward).sub(refReward);
         token.safeTransfer(accountWallet, profit);
 
         // transfer the rest to the escrow wallet
-        token.safeTransfer(escrowWallet, fee.sub(refReward.mul(rateToken)).sub(profit));
+        token.safeTransfer(escrowWallet, _providerFee.mul(rateToken));
     }
 
     function reward(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
         escrowWallet.fund(_provider, _amount, _willId);
-    }
-
-    function centsToTokens(uint256 _cents) public view returns (uint256) {
-        return _cents.mul(rateToken);
     }
 }

@@ -64,6 +64,10 @@ contract EWillPlatform is Ownable {
     }
 
     // Finance calculations
+    function annualPlatformFee() public view returns (uint256) {
+        return financeWallet.platformFee();
+    }
+
     function creatingFee(uint256 _annualFee) public pure returns (uint256) {
         return _annualFee * 12 / 10;
     }
@@ -83,6 +87,21 @@ contract EWillPlatform is Ownable {
     function claimingReward(uint256 _annualFee) private pure returns (uint256) {
         //todo: it's wrong. Need to return the 10% of the first year annual fee
         return _annualFee / 10;
+    }
+
+    function totalFee(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
+        (fee, ) = escrowWallet.providerInfo(_provider);
+        return financeWallet.totalFee(creatingFee(fee), _referrer);
+    }
+
+    function totalFeeEthers(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
+        (fee, ) = escrowWallet.providerInfo(_provider);
+        return financeWallet.totalFeeEthers(creatingFee(fee), _referrer);
+    }
+
+    function totalFeeTokens(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
+        (fee, ) = escrowWallet.providerInfo(_provider);
+        return financeWallet.totalFeeTokens(creatingFee(fee), _referrer);
     }
 
     // Public Will
