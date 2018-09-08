@@ -31,6 +31,7 @@ contract EWillPlatform is Ownable {
 
     // State Variables
     mapping (uint256 => Will) public wills;
+    //todo: remove both mappings and add events instead
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
 
@@ -38,10 +39,10 @@ contract EWillPlatform is Ownable {
     EWillEscrowIf public escrowWallet;
 
     // Events
-    event WillCreated(uint256 willId, address owner, address provider);
-    event WillStateUpdated(uint256 willId, address owner, WillState newState);
-    event WillRefreshed(uint256 willId, address owner);
-    event WillProlonged(uint256 willId, address owner, uint256 validTill);
+    event WillCreated(address indexed owner, address indexed provider, uint256 willId);
+    event WillStateUpdated(uint256 indexed willId, address indexed owner, WillState newState);
+    event WillRefreshed(uint256 indexed willId, address indexed owner);
+    event WillProlonged(uint256 indexed willId, address indexed owner, uint256 validTill);
 
     // Modifiers
     modifier onlyWillOwner(uint256 _willId) {
@@ -141,7 +142,7 @@ contract EWillPlatform is Ownable {
         userWills[msg.sender].push(_willId);
 
         // emit events
-        emit WillCreated(_willId, msg.sender, _provider);
+        emit WillCreated(msg.sender, _provider, _willId);
         emit WillStateUpdated(_willId, msg.sender, WillState.Created);
     }
 
@@ -161,15 +162,18 @@ contract EWillPlatform is Ownable {
     function refreshWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
-        //todo: how to calc over the year
         require(currentTime() - will.updatedAt > 30 days);
 
         if (will.newFee > 0) {
+            // update annual fee and set last update to the start of the new year if it's a new year
+            will.updatedAt = will.validTill - oneYear;
             will.annualFee = will.newFee;
             will.newFee = 0;
         }
+        else {
+            will.updatedAt = currentTime();
+        }
 
-        will.updatedAt = currentTime();
         financeWallet.reward(will.provider, refreshingReward(will.annualFee), _willId);
 
         emit WillRefreshed(_willId, will.owner);
@@ -204,6 +208,7 @@ contract EWillPlatform is Ownable {
         beneficiaryWills[will.beneficiaryHash].push(_willId);
 
         //todo: send a small amount of ethers to the beneficiary
+        // it's impossible for the current paradigm due to unknown address of a beneficiary
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
