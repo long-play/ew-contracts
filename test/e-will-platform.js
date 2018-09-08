@@ -31,15 +31,16 @@ contract('EWillPlatform', function(accounts) {
     Activated: 2,
     Pending: 3,
     Claimed: 4,
-    Declined: 5
+    Rejected: 5
   };
 
-  const TOKEN_SUPPLY = 100.0e+21;   // 100,000 EWILLs
-  const PLATFORM_FEE = 1500;        // cents, $15
-  const PROVIDER_FEE = 2000;        // cents, $20
-  const REFFERER_RWD = 10;          // %
-  const RATE_TOKEN   = 1.0e+14;     // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER   = 1.0e+13;     // weis per cent, 1000 $/Ether
+  const ONE_YEAR     = 365 * 24 * 3600; // in seconds
+  const TOKEN_SUPPLY = 100.0e+21;       // 100,000 EWILLs
+  const PLATFORM_FEE = 1500;            // cents, $15
+  const PROVIDER_FEE = 2000;            // cents, $20
+  const REFFERER_RWD = 10;              // %
+  const RATE_TOKEN   = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER   = 1.0e+13;         // weis per cent, 1000 $/Ether
 
   let ewPlatform = null;
   let ewFinance = null;
@@ -131,26 +132,27 @@ contract('EWillPlatform', function(accounts) {
     assert.equal(txEvent.args.newState, WillState.Claimed, 'the will is claimed with the wrong state');
   });
 
-/*
-  it("should return user's will id", async () => {
-    let txResult, txEvent;
-
-    txResult = await ewPlatform.userWills(user, 0, { from: user });
-    console.log(txResult);
-    txResult = await ewPlatform.userWills(user, 1, { from: user });
-    console.log(txResult);
-  });
-*/
-
   it("should not decline the will", async () => {
     let txResult, txEvent;
 
     try {
-      txResult = await ewPlatform.declineWill(willId, { from: deleg });
+      txResult = await ewPlatform.rejectWill(willId, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       assert.isNull(txEvent, 'the will declined although should not');
     } catch (err) {
       assert.isNotNull(err, 'the will declined although should not');
     }
+  });
+
+  //todo: needs to create a new will with acvtive state
+  it("should decline the will", async () => {
+    let txResult, txEvent;
+
+    await TestUtils.gotoFuture(ONE_YEAR + 1);
+    txResult = await ewPlatform.rejectWill(willId, { from: deleg });
+    txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+    assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');
+    assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
+    assert.equal(txEvent.args.newState, WillState.Rejected, 'the will is claimed with the wrong state');
   });
 });

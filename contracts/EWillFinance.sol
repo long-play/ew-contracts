@@ -155,11 +155,11 @@ contract EWillFinance is EWillFinanceIf, Ownable {
             token.safeTransfer(_referrer, refReward);
         }
 
-        // transfer profit to the account wallet
+        // transfer profit of the Platform to the account wallet
         uint256 profit = annualPlatformFee.mul(rateToken).sub(refReward).sub(refReward);
         token.safeTransfer(accountWallet, profit);
 
-        // transfer the rest to the escrow wallet
+        // transfer the provider fee to the escrow wallet
         token.safeTransfer(escrowWallet, _providerFee.mul(rateToken));
     }
 
