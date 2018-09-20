@@ -34,6 +34,7 @@ contract EWillPlatform is Ownable {
     //todo: remove both mappings and add events instead
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
+    address public platformAddress;
 
     EWillFinanceIf public financeWallet;
     EWillEscrowIf public escrowWallet;
@@ -59,10 +60,14 @@ contract EWillPlatform is Ownable {
     }
 
     // Constructor
-    constructor(address _finance, address _escrow) public {
+    constructor(address _finance, address _escrow, address _platformAddress) public {
         financeWallet = EWillFinanceIf(_finance);
         escrowWallet = EWillEscrowIf(_escrow);
+        platformAddress = _platformAddress;
     }
+
+    // Configuration
+    //todo: add config for contracts & public key
 
     // Finance calculations
     function annualPlatformFee() public view returns (uint256) {
@@ -70,6 +75,7 @@ contract EWillPlatform is Ownable {
     }
 
     function creatingFee(uint256 _annualFee) public pure returns (uint256) {
+        //todo: remove the multiplier 1.2
         return _annualFee * 12 / 10;
     }
 
