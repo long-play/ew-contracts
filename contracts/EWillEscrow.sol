@@ -21,7 +21,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     }
 
     // Constants
-    string constant public name = 'E-Will Escrow';
+    string constant public name = 'E-will Escrow';
 
     // State Variables
     uint256 public minProviderFund; // the minimum provider's fund in tokens
@@ -139,6 +139,11 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     function fund(address _provider, uint256 _amount, uint256 _willId) public onlyFinance {
         providers[_provider].fund = providers[_provider].fund.add(_amount);
         emit Funded(_provider, _amount, _willId);
+    }
+
+    function refund(address _customer, uint256 _amount, uint256 _willId) public onlyFinance {
+        token.safeTransfer(_customer, _amount);
+        emit Refunded(_customer, _amount, _willId);
     }
 
     function isProviderValid(address _provider) view public returns (bool) {

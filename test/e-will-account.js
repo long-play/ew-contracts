@@ -20,7 +20,7 @@ contract('EWillAccount', function(accounts) {
     await ewToken.addMerchant(ewAccount.address);
 
     const name = await ewAccount.name.call();
-    assert.equal(name, 'E-Will Account', 'the contract has the wrong name');
+    assert.equal(name, 'E-will Account', 'the contract has the wrong name');
   });
 
   it("should configure the contract", async () => {

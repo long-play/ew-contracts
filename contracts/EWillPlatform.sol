@@ -1,14 +1,17 @@
 pragma solidity ^0.4.24;
 
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import './EWillFinanceIf.sol';
 import './EWillAccountIf.sol';
 import './EWillEscrowIf.sol';
 
 
 contract EWillPlatform is Ownable {
+    using SafeMath for uint256;
+
     // Custom Types
-    enum WillState { None, Created, Activated, Pending, Claimed, Rejected }
+    enum WillState { None, Created, Activated, Pending, Claimed, Rejected, Deleted }
 
     struct Will {
         uint256     willId;
@@ -26,8 +29,10 @@ contract EWillPlatform is Ownable {
     }
 
     // Constants
-    string constant public name = 'E-Will Platform';
-    uint64 constant private oneYear = uint64(365 days);
+    string constant public name                 = 'E-will Platform';
+    uint64 constant private ONE_YEAR            = uint64(365 days);
+    uint64 constant private PERIOD_LENGTH       = uint64(30 days);
+    uint64 constant private NUMBER_OF_PERIODS   = 12; // periods per year
 
     // State Variables
     mapping (uint256 => Will) public wills;
@@ -88,7 +93,7 @@ contract EWillPlatform is Ownable {
     }
 
     function refreshingReward(uint256 _annualFee) private pure returns (uint256) {
-        return _annualFee / 12;
+        return _annualFee / NUMBER_OF_PERIODS;
     }
 
     function claimingReward(uint256 _annualFee) private pure returns (uint256) {
@@ -158,7 +163,7 @@ contract EWillPlatform is Ownable {
 
         will.state = WillState.Activated;
         will.updatedAt = currentTime();
-        will.validTill = currentTime() + oneYear;
+        will.validTill = currentTime() + ONE_YEAR;
 
         financeWallet.reward(will.provider, activatingReward(will.annualFee), _willId);
 
@@ -168,11 +173,11 @@ contract EWillPlatform is Ownable {
     function refreshWill(uint256 _willId) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
-        require(currentTime() - will.updatedAt > 30 days);
+        require(currentTime() > will.updatedAt + PERIOD_LENGTH);
 
         if (will.newFee > 0) {
             // update annual fee and set last update to the start of the new year if it's a new year
-            will.updatedAt = will.validTill - oneYear;
+            will.updatedAt = will.validTill - ONE_YEAR;
             will.annualFee = will.newFee;
             will.newFee = 0;
         }
@@ -189,7 +194,7 @@ contract EWillPlatform is Ownable {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         // allow to prolong the will in the last month of the previous subscription only
-        require(will.validTill < currentTime() + 30 days);
+        require(will.validTill < currentTime() + PERIOD_LENGTH);
 
         // charge the user and distribute the fee
         uint256 fee;
@@ -198,7 +203,7 @@ contract EWillPlatform is Ownable {
 
         // update the will
         will.newFee = financeWallet.centsToTokens(fee);
-        will.validTill += oneYear;
+        will.validTill += ONE_YEAR;
 
         // emit an event
         emit WillProlonged(_willId, will.owner, will.validTill);
@@ -237,6 +242,20 @@ contract EWillPlatform is Ownable {
 
         will.state = WillState.Rejected;
         will.updatedAt = currentTime();
+
+        emit WillStateUpdated(_willId, will.owner, will.state);
+    }
+
+    function deleteWill(uint256 _willId) public {
+        Will storage will = wills[_willId];
+        require(will.owner == msg.sender);
+        require(will.state == WillState.Activated);
+        require(will.validTill > currentTime());
+
+        uint256 wholePeriods = (will.validTill - currentTime()) / PERIOD_LENGTH;
+        will.state = WillState.Deleted;
+        will.updatedAt = currentTime();
+        financeWallet.refund(will.owner, refreshingReward(will.annualFee).mul(wholePeriods).div(NUMBER_OF_PERIODS), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }

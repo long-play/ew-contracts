@@ -19,7 +19,7 @@ contract('EWillPreTokensale', function(accounts) {
     ewPreTokensale = await EWillPreTokensale.new(10, now + 2, now + 5);
     ewToken = EWillToken.at(await ewPreTokensale.token.call());
     const name = await ewPreTokensale.name.call();
-    assert.equal(name, 'E-Will Pre-Tokensale', 'the contract has the wrong name');
+    assert.equal(name, 'E-will Pre-Tokensale', 'the contract has the wrong name');
   });
 
   it("should have a correct supply", async () => {

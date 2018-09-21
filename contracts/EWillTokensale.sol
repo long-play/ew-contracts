@@ -10,7 +10,7 @@ contract EWillTokensale is Ownable {
     using SafeERC20 for EWillToken;
 
     // Constants
-    string constant public name = "E-Will Tokensale";
+    string constant public name = "E-will Tokensale";
     uint256 constant public minContribution  = 0.1 * 1 ether;
     uint256 constant public maxContribution  = 100 * 1 ether;
 

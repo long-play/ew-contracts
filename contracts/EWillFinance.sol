@@ -14,7 +14,7 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     using SafeERC20 for EWillTokenIf;
 
     // Constants
-    string constant public name = 'E-Will Finance';
+    string constant public name = 'E-will Finance';
 
     // State Variables
     uint256 public annualPlatformFee;                       // annual platform fee in cents
@@ -161,6 +161,10 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
         // transfer the provider fee to the escrow wallet
         token.safeTransfer(escrowWallet, _providerFee.mul(rateToken));
+    }
+
+    function refund(address _customer, uint256 _amount, uint256 _willId) public onlyPlatform {
+        escrowWallet.refund(_customer, _amount, _willId);
     }
 
     function reward(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {

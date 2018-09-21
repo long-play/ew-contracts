@@ -19,7 +19,7 @@ contract EWillAccount is EWillAccountIf, Ownable {
     }
 
     // Constants
-    string constant public name = 'E-Will Account';
+    string constant public name = 'E-will Account';
 
     // State Variables
     uint256 public income;                          // the income of the Finance Contract

@@ -63,7 +63,7 @@ contract('EWillPlatform', function(accounts) {
     await ewToken.transfer(ewFinance.address, 5.0e+21);
 
     const name = await ewPlatform.name.call();
-    assert.equal(name, 'E-Will Platform', 'the contract has the wrong name');
+    assert.equal(name, 'E-will Platform', 'the contract has the wrong name');
   });
 
   it("should configure the contract", async () => {

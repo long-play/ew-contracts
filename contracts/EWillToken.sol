@@ -6,7 +6,7 @@ import 'zeppelin-solidity/contracts/token/ERC20/StandardToken.sol';
 import './EWillTokenIf.sol';
 
 
-contract EWillToken is EWillTokenIf, Ownable, DetailedERC20('E-Will Token', 'EWILL', 18), StandardToken {
+contract EWillToken is EWillTokenIf, Ownable, DetailedERC20('E-will Token', 'EWILL', 18), StandardToken {
     // State Variables
     mapping (address => uint256)  public merchants;
 

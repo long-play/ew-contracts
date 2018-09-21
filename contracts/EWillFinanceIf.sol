@@ -9,5 +9,6 @@ contract EWillFinanceIf {
     function centsToTokens(uint256 _cents) public view returns (uint256);
 
     function charge(address _customer, uint256 _providerFee, address _referrer, bytes32 _note) public payable;
+    function refund(address _customer, uint256 _amount, uint256 _willId) public;
     function reward(address _provider, uint256 _amount, uint256 _willId) public;
 }

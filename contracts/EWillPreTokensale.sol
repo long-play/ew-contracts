@@ -10,7 +10,7 @@ contract EWillPreTokensale is Ownable {
     using SafeERC20 for EWillToken;
 
     // Constants
-    string constant public name = "E-Will Pre-Tokensale";
+    string constant public name = "E-will Pre-Tokensale";
     uint256 constant public tokenTotalSupply = 10000000 * 1 ether;
     uint256 constant public preTokenSaleCap  = tokenTotalSupply / 20;
     uint256 constant public devTokenShare    = tokenTotalSupply / 2;
