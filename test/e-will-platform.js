@@ -90,7 +90,7 @@ contract('EWillPlatform', function(accounts) {
     let benHash = (new BN(benf.slice(2), 16)).toBuffer();
     benHash = new BN(keccak256(benHash), 16);
 
-    txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
+    txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
     assert.equal(txEvent.args.willId.toString(10).toString(10), willId, 'the will is created with the wrong ID');
     assert.equal(txEvent.args.owner, user, 'the will is created for the wrong user');
@@ -151,7 +151,7 @@ contract('EWillPlatform', function(accounts) {
   it("should decline the will", async () => {
     let txResult, txEvent;
 
-    await TestUtils.gotoFuture(ONE_YEAR + 1);
+    await TestUtils.gotoFuture(2 * ONE_YEAR + 1);
     txResult = await ewPlatform.rejectWill(willId, { from: deleg });
     txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
     assert.equal(txEvent.args.willId.toString(10), willId, 'the will is created with the wrong ID');

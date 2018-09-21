@@ -126,15 +126,16 @@ contract EWillPlatform is Ownable {
         return beneficiaryWills[addressKeccak256(_beneficiary)].length;
     }
 
-    function createWill(string _title, uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer) public payable {
+    function createWill(string _title, uint256 _willId, uint256 _storageId, uint64 _years, uint256 _beneficiaryHash, address _provider, address _referrer) public payable {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
+        require(_years > 0 && _years < 101);
 
         // charge the user and distribute the fee
         uint256 fee;
         (fee, ) = escrowWallet.providerInfo(_provider);
-        financeWallet.charge.value(msg.value)(msg.sender, creatingFee(fee), _referrer, bytes32(_willId));
+        financeWallet.charge.value(msg.value)(msg.sender, creatingFee(fee) * _years, _referrer, bytes32(_willId));
 
         // create the will
         wills[_willId] = Will({
@@ -149,7 +150,7 @@ contract EWillPlatform is Ownable {
             beneficiaryHash: _beneficiaryHash,
             decryptionKey: 0,
             updatedAt: currentTime(),
-            validTill: 0,
+            validTill: _years,
             provider: _provider
         });
         userWills[msg.sender].push(_willId);
@@ -165,7 +166,7 @@ contract EWillPlatform is Ownable {
 
         will.state = WillState.Activated;
         will.updatedAt = currentTime();
-        will.validTill = currentTime() + ONE_YEAR;
+        will.validTill = currentTime() + will.validTill * ONE_YEAR;
 
         financeWallet.reward(will.provider, activatingReward(will.annualFee), _willId);
 
@@ -192,20 +193,21 @@ contract EWillPlatform is Ownable {
         emit WillRefreshed(_willId, will.owner);
     }
 
-    function prolongWillWithEther(uint256 _willId) public payable {
+    function prolongWill(uint256 _willId, uint64 _years) public payable {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
-        // allow to prolong the will in the last month of the previous subscription only
+        // allow to prolong the will in the last period of the previous subscription only
         require(will.validTill < currentTime() + PERIOD_LENGTH);
+        require(_years > 0 && _years < 101);
 
         // charge the user and distribute the fee
         uint256 fee;
         (fee, ) = escrowWallet.providerInfo(will.provider);
-        financeWallet.charge.value(msg.value)(msg.sender, prolongingFee(fee), 0x0, bytes32(_willId));
+        financeWallet.charge.value(msg.value)(msg.sender, prolongingFee(fee) * _years, 0x0, bytes32(_willId));
 
         // update the will
         will.newFee = financeWallet.centsToTokens(fee);
-        will.validTill += ONE_YEAR;
+        will.validTill += ONE_YEAR * _years;
 
         // emit an event
         emit WillProlonged(_willId, will.owner, will.validTill);
