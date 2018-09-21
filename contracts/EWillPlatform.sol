@@ -26,6 +26,7 @@ contract EWillPlatform is Ownable {
         address     provider;
         uint64      validTill;
         WillState   state;
+        string      title;
     }
 
     // Constants
@@ -125,7 +126,7 @@ contract EWillPlatform is Ownable {
         return beneficiaryWills[addressKeccak256(_beneficiary)].length;
     }
 
-    function createWill(uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer) public payable {
+    function createWill(string _title, uint256 _willId, uint256 _storageId, uint256 _beneficiaryHash, address _provider, address _referrer) public payable {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
         require(address(_willId >> 96) == _provider);
@@ -137,6 +138,7 @@ contract EWillPlatform is Ownable {
 
         // create the will
         wills[_willId] = Will({
+            title: _title,
             willId: _willId,
             storageId: _storageId,
             annualFee: financeWallet.centsToTokens(fee),
