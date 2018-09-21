@@ -18,7 +18,6 @@ contract EWillPlatform is Ownable {
         uint256     storageId;
         uint256     annualFee;
         uint256     newFee;
-        uint256     activationFee;
         uint256     beneficiaryHash;
         uint256     decryptionKey;
         address     owner;
@@ -80,41 +79,23 @@ contract EWillPlatform is Ownable {
         return financeWallet.platformFee();
     }
 
-    function creatingFee(uint256 _annualFee) public pure returns (uint256) {
-        //todo: remove the multiplier 1.2
-        return _annualFee * 12 / 10;
-    }
-
-    function prolongingFee(uint256 _annualFee) public pure returns (uint256) {
-        return _annualFee;
-    }
-
-    function activatingReward(uint256 _annualFee) private pure returns (uint256) {
-        return _annualFee / 10;
-    }
-
     function refreshingReward(uint256 _annualFee) private pure returns (uint256) {
         return _annualFee / NUMBER_OF_PERIODS;
     }
 
-    function claimingReward(uint256 _annualFee) private pure returns (uint256) {
-        //todo: it's wrong. Need to return the 10% of the first year annual fee
-        return _annualFee / 10;
-    }
-
     function totalFee(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
         (fee, ) = escrowWallet.providerInfo(_provider);
-        return financeWallet.totalFee(creatingFee(fee), _referrer);
+        return financeWallet.totalFee(fee, _referrer);
     }
 
     function totalFeeEthers(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
         (fee, ) = escrowWallet.providerInfo(_provider);
-        return financeWallet.totalFeeEthers(creatingFee(fee), _referrer);
+        return financeWallet.totalFeeEthers(fee, _referrer);
     }
 
     function totalFeeTokens(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
         (fee, ) = escrowWallet.providerInfo(_provider);
-        return financeWallet.totalFeeTokens(creatingFee(fee), _referrer);
+        return financeWallet.totalFeeTokens(fee, _referrer);
     }
 
     // Public Will
@@ -135,7 +116,7 @@ contract EWillPlatform is Ownable {
         // charge the user and distribute the fee
         uint256 fee;
         (fee, ) = escrowWallet.providerInfo(_provider);
-        financeWallet.charge.value(msg.value)(msg.sender, creatingFee(fee) * _years, _referrer, bytes32(_willId));
+        financeWallet.charge.value(msg.value)(msg.sender, fee * _years, _referrer, bytes32(_willId));
 
         // create the will
         wills[_willId] = Will({
@@ -144,7 +125,6 @@ contract EWillPlatform is Ownable {
             storageId: _storageId,
             annualFee: financeWallet.centsToTokens(fee),
             newFee: 0,
-            activationFee: financeWallet.centsToTokens(activatingReward(fee)),
             owner: msg.sender,
             state: WillState.Created,
             beneficiaryHash: _beneficiaryHash,
@@ -167,8 +147,6 @@ contract EWillPlatform is Ownable {
         will.state = WillState.Activated;
         will.updatedAt = currentTime();
         will.validTill = currentTime() + will.validTill * ONE_YEAR;
-
-        financeWallet.reward(will.provider, activatingReward(will.annualFee), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
@@ -203,7 +181,7 @@ contract EWillPlatform is Ownable {
         // charge the user and distribute the fee
         uint256 fee;
         (fee, ) = escrowWallet.providerInfo(will.provider);
-        financeWallet.charge.value(msg.value)(msg.sender, prolongingFee(fee) * _years, 0x0, bytes32(_willId));
+        financeWallet.charge.value(msg.value)(msg.sender, fee * _years, 0x0, bytes32(_willId));
 
         // update the will
         will.newFee = financeWallet.centsToTokens(fee);
@@ -234,7 +212,6 @@ contract EWillPlatform is Ownable {
         require(addressKeccak256(msg.sender) == will.beneficiaryHash);
 
         will.state = WillState.Claimed;
-        financeWallet.reward(will.provider, claimingReward(will.annualFee), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }

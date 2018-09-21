@@ -102,7 +102,7 @@ contract('EWillPlatform', function(accounts) {
     assert.equal(txEvent.args.newState, WillState.Created, 'the will is created with the wrong state');
 
     const will = await ewPlatform.wills.call(willId);
-    assert.equal(will[12], 'Test will for EV', 'the will is created with the wrong title');
+    assert.equal(will[11], 'Test will for EV', 'the will is created with the wrong title');
   });
 
   it("should activate the will", async () => {
