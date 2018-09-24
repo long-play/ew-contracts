@@ -25,16 +25,18 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
     txResult = await ewAccount.setMinParkingAmount(15, { from: admin });
 
     const minParkingAmount = await ewAccount.minParkingAmount.call();
-    minParkingAmount.toString().should.be.equal('15000000000000000000');
+    minParkingAmount.should.be.bignumber.equal('15000000000000000000');
   });
 
   it('should get funds', async () => {
+    const willId = 0xdeadbeaf;
+    const amount = 70.0e+18;
     // transfer tokens first
     txResult = await ewToken.transfer(ewAccount.address, 70.0e+18, { from: admin });
-    txResult = await ewAccount.fund(0xdeadbeaf, 70.0e+18, { from: admin });
+    txResult = await ewAccount.fund(willId, amount, { from: admin });
     txEvent = TestUtils.findEvent(txResult.logs, 'Funded');
-    txEvent.args.willId.should.be.bignumber.equal(0xdeadbeaf);
-    txEvent.args.amount.should.be.bignumber.equal(70.0e+18);
+    txEvent.args.willId.should.be.bignumber.equal(willId);
+    txEvent.args.amount.should.be.bignumber.equal(amount);
   });
 
   it('should not pay more than a half of the balance for operational expenses', async () => {

@@ -15,13 +15,13 @@ contract('EWillToken', function([owner, account1]) {
 
   it('should have a correct supply', async () => {
     const totalSupply = await ewToken.totalSupply.call();
-    totalSupply.toString().should.be.equal(ewTokenSupply.toString());
+    totalSupply.should.be.bignumber.equal(ewTokenSupply);
   });
 
   it('should grant the creator with the total supply', async () => {
     const totalSupply = await ewToken.totalSupply.call();
     const balance = await ewToken.balanceOf.call(owner);
-    totalSupply.toString().should.be.equal(balance.toString());
+    totalSupply.should.be.bignumber.equal(balance);
   });
 
   it('should allow to transfer tokens', async () => {
@@ -33,6 +33,6 @@ contract('EWillToken', function([owner, account1]) {
     txEvent.args.value.should.be.bignumber.equal(transferAmout);
 
     const balance = await ewToken.balanceOf.call(account1);
-    transferAmout.toString().should.be.equal(balance.toString());
+    transferAmout.should.be.bignumber.equal(balance);
   });
 });

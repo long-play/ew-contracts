@@ -72,7 +72,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txResult = await ewFinance.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
 
       const annualPlatformFee = await ewFinance.annualPlatformFee.call();
-      annualPlatformFee.toString().should.be.equal('500');
+      annualPlatformFee.should.be.bignumber.equal('500');
 
       txResult = await ewEscrow.register(1000, 0x0badfeed, deleg, { from: prov });
       txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
