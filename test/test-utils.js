@@ -1,5 +1,11 @@
 TestUtils = {};
 
+const BigNumber = web3.BigNumber;
+TestUtils.should = require('chai')
+    .use(require('chai-as-promised'))
+    .use(require('chai-bignumber')(BigNumber))
+    .should();
+
 const advanceTime = (time) => {
   const promise = new Promise((resolve, reject) => {
     web3.currentProvider.sendAsync({
