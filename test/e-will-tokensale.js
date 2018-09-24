@@ -1,23 +1,19 @@
-const EWillTokensale = artifacts.require("EWillTokensale");
-const EWillToken = artifacts.require("EWillToken");
+const EWillTokensale = artifacts.require('EWillTokensale');
+const EWillToken = artifacts.require('EWillToken');
 const TestUtils = require('./test-utils.js');
 
-contract('EWillTokensale', function(accounts) {
-  const owner    = accounts[0];
-  const account1 = accounts[1];
-  const account2 = accounts[2];
-  const wallet   = accounts[3];
+contract('EWillTokensale', function([owner, account1, account2, wallet]) {
 
   const totalSupply = 100.0e+18;
   let ewToken = null;
   let ewTokensale = null;
 
-  it("should have a correct name", async () => {
+  it('should have a correct name', async () => {
     const now = Date.now() / 1000;
     ewToken = EWillToken.new(totalSupply);
     ewTokensale = await EWillTokensale.new(ewToken.address);
     const name = await ewTokensale.name.call();
-    assert.equal(name, 'E-will Tokensale', 'the contract has the wrong name');
+    name.should.be.equal('E-will Tokensale');
   });
 
 /*
