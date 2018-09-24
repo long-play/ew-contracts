@@ -29,6 +29,8 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
     address public marketer;
     EWillTokenIf public token;
     mapping (address => Discount) internal discounts;
+    uint32 refCodeDiscount;
+    uint32 refCodeReward;
 
     // Events
 
@@ -48,6 +50,8 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
         token = EWillTokenIf(_token);
         finance = _finance;
         marketer = _marketer;
+        refCodeDiscount = 200;  // 20%
+        refCodeReward = 200;    // 20%
     }
 
     // Configuration
@@ -57,6 +61,12 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
 
     function setMarketer(address _marketer) public onlyOwner {
         marketer = _marketer;
+    }
+
+    function setRefCodeParams(uint32 _discount, uint32 _reward) public onlyMarketer {
+        require(_discount + _reward <= PERCENT_MULTIPLIER);
+        refCodeDiscount = _discount;
+        refCodeReward = _reward;
     }
 
     function addDiscount(address _referrer,
@@ -86,6 +96,15 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
     }
 
     // Public Marketing
+    function createRefCode(address _referrer) public onlyFinance {
+        discounts[_referrer] = Discount({
+            discount:   refCodeDiscount,
+            reward:     refCodeReward,
+            startAt:    currentTime(),
+            endAt:      currentTime() + uint64(365 days)
+        });
+    }
+
     function referrerDiscount(uint256 _platformFee,
                               uint256 _providerFee,
                               address _provider,
