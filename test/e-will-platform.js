@@ -1,8 +1,8 @@
-const EWillToken = artifacts.require("EWillToken");
-const EWillEscrow = artifacts.require("EWillEscrow");
-const EWillAccount = artifacts.require("EWillAccount");
-const EWillFinance = artifacts.require("EWillFinance");
-const EWillPlatform = artifacts.require("EWillPlatform");
+const EWillToken = artifacts.require('EWillToken');
+const EWillEscrow = artifacts.require('EWillEscrow');
+const EWillAccount = artifacts.require('EWillAccount');
+const EWillFinance = artifacts.require('EWillFinance');
+const EWillPlatform = artifacts.require('EWillPlatform');
 const keccak256 = require('js-sha3').keccak256;
 const BN = require('bn.js');
 const TestUtils = require('./test-utils.js');
@@ -43,8 +43,8 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
   let ewToken = null;
   let txResult, txEvent;
 
-  describe("#configuration", () => {
-    it("should have a correct name", async () => {
+  describe('#configuration', () => {
+    it('should have a correct name', async () => {
       ewToken = await EWillToken.new(ewTokenSupply);
       ewEscrow = await EWillEscrow.new(ewToken.address, 70);
       ewAccount = await EWillAccount.new(ewToken.address, 1000, admin);
@@ -62,7 +62,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       name.should.be.equal('E-will Platform');
     });
 
-    it("should configure the contract", async () => {
+    it('should configure the contract', async () => {
       await ewToken.addMerchant(ewEscrow.address);
       await ewToken.addMerchant(ewAccount.address);
       await ewToken.addMerchant(ewFinance.address);
@@ -80,10 +80,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
   });
 
-  describe("#creation and claim of will", () => {
+  describe('#creation and claim of will', () => {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111d, 16)).toString(10);
 
-    it("should create a will", async () => {
+    it('should create a will', async () => {
       let benHash = (new BN(benf.slice(2), 16)).toBuffer();
       benHash = new BN(keccak256(benHash), 16);
 
@@ -101,7 +101,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       will[11].should.be.equal('Test will for EV');
     });
 
-    it("should activate the will", async () => {
+    it('should activate the will', async () => {
       txResult = await ewPlatform.activateWill(willId, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -109,7 +109,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it("should apply the will", async () => {
+    it('should apply the will', async () => {
       txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -117,7 +117,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Pending);
     });
 
-    it("should claim the will", async () => {
+    it('should claim the will', async () => {
       txResult = await ewPlatform.claimWill(willId, { from: benf });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -125,7 +125,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Claimed);
     });
 
-    it("should not decline the will", async () => {
+    it('should not decline the will', async () => {
       let isCaught = false;
       try {
         txResult = await ewPlatform.rejectWill(willId, { from: deleg });
@@ -137,10 +137,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
   });
 
-  describe("#delegate decline the will", () => {
+  describe('#delegate decline the will', () => {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111c, 16)).toString(10);
 
-    it("should create a will", async () => {
+    it('should create a will', async () => {
       let benHash = (new BN(benf.slice(2), 16)).toBuffer();
       benHash = new BN(keccak256(benHash), 16);
 
@@ -154,10 +154,9 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.willId.should.be.bignumber.equal(willId);
       txEvent.args.owner.should.be.bignumber.equal(user);
       txEvent.args.newState.should.be.bignumber.equal(WillState.Created);
-
     });
 
-    it("should activate the will", async () => {
+    it('should activate the will', async () => {
       txResult = await ewPlatform.activateWill(willId, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -165,7 +164,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it("should decline the will", async () => {
+    it('should decline the will', async () => {
       await TestUtils.gotoFuture(2 * ONE_YEAR + 1);
       txResult = await ewPlatform.rejectWill(willId, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
