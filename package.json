@@ -5,6 +5,9 @@
   "description": "The smart-contract for the Platform for the service of digital willing",
   "keywords": [],
   "dependencies": {
+    "chai": "^4.1.2",
+    "chai-as-promised": "^7.1.1",
+    "chai-bignumber": "^2.0.2",
     "zeppelin-solidity": "^1.10.0"
   },
   "devDependencies": {
