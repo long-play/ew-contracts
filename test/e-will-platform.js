@@ -116,17 +116,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it('should not decline the will', async () => {
-      let isCaught = false;
-      try {
-        txResult = await ewPlatform.rejectWill(willId, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
-      } catch (err) {
-        isCaught = true;
-      }
-      isCaught.should.be.equal(true);
-    });
-
     it('should apply the will', async () => {
       txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
@@ -176,6 +165,17 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.willId.should.be.bignumber.equal(willId);
       txEvent.args.owner.should.be.bignumber.equal(user);
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
+    });
+
+    it('should not decline the will', async () => {
+      let isCaught = false;
+      try {
+        txResult = await ewPlatform.rejectWill(willId, { from: deleg });
+        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+      } catch (err) {
+        isCaught = true;
+      }
+      isCaught.should.be.equal(true);
     });
 
     it('should decline the will', async () => {
