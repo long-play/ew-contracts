@@ -34,7 +34,7 @@ contract('EWillEscrow', function([admin, user, prov, provwl, deleg]) {
   it('should configure the contract', async () => {
     txResult = await ewEscrow.setMinFund(5, { from: admin });
     const minProviderFund = await ewEscrow.minProviderFund.call();
-    minProviderFund.should.be.bignumber.equal('5000000000000000000');
+    minProviderFund.should.be.bignumber.equal(5000000000000000000);
   });
 
   it('should register a provider', async () => {
@@ -57,7 +57,7 @@ contract('EWillEscrow', function([admin, user, prov, provwl, deleg]) {
     txEvent = TestUtils.findEvent(txResult.logs, 'Funded');
     txEvent.args.willId.should.be.bignumber.equal(0);
     txEvent.args.provider.should.be.bignumber.equal(prov);
-    txEvent.args.amount.should.be.bignumber.equal('6000000000000000000');
+    txEvent.args.amount.should.be.bignumber.equal(6000000000000000000);
 
     isValid = await ewEscrow.isProviderValid.call(prov);
     isValid.should.be.equal(true);
