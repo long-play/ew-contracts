@@ -42,7 +42,13 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
   let ewAccount = null;
   let ewEscrow = null;
   let ewToken = null;
+  let benHash;
+  let minus_days;
+  let isCaught;
   let txResult, txEvent;
+
+  benHash = (new BN(benf.slice(2), 16)).toBuffer();
+  benHash = new BN(keccak256(benHash), 16);
 
   describe('#configuration', () => {
     it('should have a correct name', async () => {
@@ -91,9 +97,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     }); 
 
     it('should create a will', async () => {
-      let benHash = (new BN(benf.slice(2), 16)).toBuffer();
-      benHash = new BN(keccak256(benHash), 16);
-
       txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -144,9 +147,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111c, 16)).toString(10);
 
     it('should create a will', async () => {
-      let benHash = (new BN(benf.slice(2), 16)).toBuffer();
-      benHash = new BN(keccak256(benHash), 16);
-
       txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
 
@@ -167,9 +167,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it('should not decline the will', async () => {
-      let isCaught = false;
+    it('should not decline the will, the period of validity of the will has not yet expired', async () => {
+      isCaught = false;
       try {
+        await TestUtils.gotoFuture(1 * ONE_YEAR);
         txResult = await ewPlatform.rejectWill(willId, { from: deleg });
         txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       } catch (err) {
@@ -192,9 +193,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31111e, 16)).toString(10);
 
     it('should create a will', async () => {
-      let benHash = (new BN(benf.slice(2), 16)).toBuffer();
-      benHash = new BN(keccak256(benHash), 16);
-
       txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -233,9 +231,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31112d, 16)).toString(10);
 
     it('should create a will', async () => {
-      let benHash = (new BN(benf.slice(2), 16)).toBuffer();
-      benHash = new BN(keccak256(benHash), 16);
-
       txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -255,12 +250,12 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it('should not refresh the will', async () => {
-      const twenty_nine_days = 701 * 24 * 3600;
-      let isCaught = false;
+    it('should not refresh the will, since it did not expired 30 days', async () => {
+      const twenty_nine_days = 29 * 24 * 3600;
+      isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(2 * ONE_YEAR - twenty_nine_days);
+        await TestUtils.gotoFuture(twenty_nine_days);
         txResult = await ewPlatform.refreshWill(willId, { from: deleg });
         txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
@@ -270,9 +265,9 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should refresh the will', async () => {
-      const thirty_days = 700 * 24 * 3600;
+      const thirty_days = 30 * 24 * 3600;
 
-      await TestUtils.gotoFuture(2 * ONE_YEAR - thirty_days);
+      await TestUtils.gotoFuture(thirty_days);
       txResult = await ewPlatform.refreshWill(willId, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -290,9 +285,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31113e, 16)).toString(10);
 
     it('should create a will', async () => {
-      let benHash = (new BN(benf.slice(2), 16)).toBuffer();
-      benHash = new BN(keccak256(benHash), 16);
-
       txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -312,13 +304,12 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it('should not prolong the will', async () => {
-      const sixty_minus = 60 * 24 * 3600;
-      const will = await ewPlatform.wills.call(willId);
+    it('should not prolong the will before the last 30 days of subscription', async () => {
+      minus_days = 60 * 24 * 3600;
       isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(2 * ONE_YEAR - sixty_minus);
+        await TestUtils.gotoFuture(2 * ONE_YEAR - minus_days);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
         txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
       } catch (err) {
@@ -328,9 +319,9 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should prolong the will', async () => {
-      const fifteen_minus = 15 * 24 * 3600;
+      minus_days = 15 * 24 * 3600;
 
-      await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_minus);
+      await TestUtils.gotoFuture(2 * ONE_YEAR - minus_days);
       txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       const willUpdate = await ewPlatform.wills.call(willId);
       txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
