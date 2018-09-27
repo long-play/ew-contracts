@@ -83,21 +83,6 @@ contract EWillPlatform is Ownable {
         return _annualFee / NUMBER_OF_PERIODS;
     }
 
-    function totalFee(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
-        (fee, ) = escrowWallet.providerInfo(_provider);
-        return financeWallet.totalFee(fee, _referrer);
-    }
-
-    function totalFeeEthers(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
-        (fee, ) = escrowWallet.providerInfo(_provider);
-        return financeWallet.totalFeeEthers(fee, _referrer);
-    }
-
-    function totalFeeTokens(address _provider, bool _referrer) public view returns (uint256 fee, uint256 refReward) {
-        (fee, ) = escrowWallet.providerInfo(_provider);
-        return financeWallet.totalFeeTokens(fee, _referrer);
-    }
-
     // Public Will
     function numberOfUserWills(address _user) public view returns (uint256) {
         return userWills[_user].length;
@@ -116,7 +101,7 @@ contract EWillPlatform is Ownable {
         // charge the user and distribute the fee
         uint256 fee;
         (fee, ) = escrowWallet.providerInfo(_provider);
-        financeWallet.charge.value(msg.value)(msg.sender, fee * _years, _referrer, bytes32(_willId));
+        financeWallet.charge.value(msg.value)(msg.sender, _provider, _referrer, _years, bytes32(_willId));
 
         // create the will
         wills[_willId] = Will({
@@ -181,7 +166,7 @@ contract EWillPlatform is Ownable {
         // charge the user and distribute the fee
         uint256 fee;
         (fee, ) = escrowWallet.providerInfo(will.provider);
-        financeWallet.charge.value(msg.value)(msg.sender, fee * _years, 0x0, bytes32(_willId));
+        financeWallet.charge.value(msg.value)(msg.sender, will.provider, 0x0, _years, bytes32(_willId));
 
         // update the will
         will.newFee = financeWallet.centsToTokens(fee);
