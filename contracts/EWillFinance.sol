@@ -149,8 +149,8 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         uint256 fee = 0;
         uint256 refReward = 0;
         uint256 providerFee = 0;
-        (fee, refReward,) = totalFeeTokens(_years, _provider, _referrer);
-        (providerFee, ) = escrowWallet.providerInfo(_provider);
+        (fee,) = totalFeeTokens(_years, _provider, _referrer);
+        (providerFee,) = escrowWallet.providerInfo(_provider);
 
         // buy tokens
         if (msg.value > 0) {
@@ -161,13 +161,8 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         // charge fee in tokens
         token.charge(_customer, fee, _note);
 
-        // reward the referrer
-        if (refReward > 0) {
-            token.safeTransfer(_referrer, refReward);
-        }
-
         // transfer profit of the Platform to the account wallet
-        uint256 profit = annualPlatformFee.mul(rateToken).sub(refReward).sub(refReward);
+        uint256 profit = annualPlatformFee.mul(rateToken);
         token.safeTransfer(accountWallet, profit);
 
         // transfer the provider fee to the escrow wallet
