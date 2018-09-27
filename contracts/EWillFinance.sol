@@ -18,7 +18,7 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     string constant public name = 'E-will Finance';
 
     // State Variables
-    uint256 public annualPlatformFee;                       // annual platform fee in cents
+    uint256 internal annualPlatformFee;                     // annual platform fee in cents
     uint256 public rateEther;                               // exchange rate, weis per cent
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
@@ -105,16 +105,18 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     // Public Financing
-    function platformFee() public view returns (uint256) {
-        return annualPlatformFee;
+    function platformFee(uint64 _years) public view returns (uint256) {
+        return annualPlatformFee * _years;
     }
 
     function totalFee(uint64 _years, address _provider, address _referrer) public view returns (uint256 fee, uint256 refReward, uint256 subsidy) {
         (fee, ) = escrowWallet.providerInfo(_provider);
+        uint256 fullPlatformFee = platformFee(_years);
+        uint256 fullProviderFee = fee.mul(_years);
         if (address(0x0) != address(marketingWallet)) {
-            (subsidy, refReward) = marketingWallet.referrerDiscount(annualPlatformFee, fee, _provider, _referrer);
+            (subsidy, refReward) = marketingWallet.referrerDiscount(fullPlatformFee, fullProviderFee, _provider, _referrer);
         }
-        fee = annualPlatformFee.add(fee);
+        fee = fullPlatformFee.add(fullProviderFee);
     }
 
     function totalFeeEthers(uint64 _years, address _provider, address _referrer) public view returns (uint256 fee, uint256 refReward, uint256 subsidy) {
@@ -147,10 +149,7 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     function charge(address _customer, address _provider, address _referrer, uint64 _years, bytes32 _note) public payable onlyPlatform {
         // get the fee amounts
         uint256 fee = 0;
-        uint256 refReward = 0;
-        uint256 providerFee = 0;
         (fee,) = totalFeeTokens(_years, _provider, _referrer);
-        (providerFee,) = escrowWallet.providerInfo(_provider);
 
         // buy tokens
         if (msg.value > 0) {
@@ -162,11 +161,11 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         token.charge(_customer, fee, _note);
 
         // transfer profit of the Platform to the account wallet
-        uint256 profit = annualPlatformFee.mul(rateToken);
+        uint256 profit = platformFee(_years).mul(rateToken);
         token.safeTransfer(accountWallet, profit);
 
         // transfer the provider fee to the escrow wallet
-        token.safeTransfer(escrowWallet, providerFee.mul(rateToken));
+        token.safeTransfer(escrowWallet, fee.sub(profit));
     }
 
     function refund(address _customer, uint256 _amount, uint256 _willId) public onlyPlatform {

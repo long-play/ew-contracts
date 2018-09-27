@@ -83,7 +83,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       // 1 ether == $1000, 1 EWILL == $100
       txResult = await ewFinance.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
 
-      const annualPlatformFee = await ewFinance.annualPlatformFee.call();
+      const annualPlatformFee = await ewFinance.platformFee.call(1);
       annualPlatformFee.should.be.bignumber.equal('500');
 
       txResult = await ewEscrow.register(1000, 0x0badfeed, deleg, { from: prov });

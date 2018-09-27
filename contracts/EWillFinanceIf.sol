@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 
 
 contract EWillFinanceIf {
-    function platformFee() public view returns (uint256);
+    function platformFee(uint64 _years) public view returns (uint256);
     function totalFee(uint64 _years, address _provider, address _referrer) public view returns (uint256 fee, uint256 refReward, uint256 subsidy);
     function totalFeeEthers(uint64 _years, address _provider, address _referrer) public view returns (uint256 fee, uint256 refReward, uint256 subsidy);
     function totalFeeTokens(uint64 _years, address _provider, address _referrer) public view returns (uint256 fee, uint256 refReward, uint256 subsidy);

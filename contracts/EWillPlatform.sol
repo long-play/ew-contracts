@@ -75,8 +75,8 @@ contract EWillPlatform is Ownable {
     //todo: add config for contracts & public key
 
     // Finance calculations
-    function annualPlatformFee() public view returns (uint256) {
-        return financeWallet.platformFee();
+    function annualPlatformFee(uint64 _years) public view returns (uint256) {
+        return financeWallet.platformFee(_years);
     }
 
     function refreshingReward(uint256 _annualFee) private pure returns (uint256) {
