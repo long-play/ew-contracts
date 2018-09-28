@@ -62,7 +62,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     await ewToken.transfer(prov, 150.0e+18);
     await ewToken.transfer(plat, 100.0e+18);
     await ewToken.transfer(ewFinance.address, 15.0e+18);
-    await ewToken.transfer(ewMarketing.address, 200.0e+18);
+    await ewToken.transfer(ewMarketing.address, 20.0e+18);
 
     const name = await ewFinance.name.call();
     name.should.be.equal('E-will Finance');
@@ -72,7 +72,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     await ewToken.addMerchant(ewEscrow.address);
     await ewToken.addMerchant(ewAccount.address);
     await ewToken.addMerchant(ewFinance.address);
-    await ewMarketing.addDiscount(user,
+    await ewMarketing.addDiscount(benf,
                                   Date.now() / 1000,
                                   Date.now() / 1000 + ONE_YEAR,
                                   DISCOUNT,
@@ -134,9 +134,11 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
   });
 
   it("should charge with referrer reward", async () => {
+    const entireDiscount = (PLATFORM_FEE * DISCOUNT + PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * RATE_TOKEN / 1000;
+    const refReward = PLATFORM_FEE * REWARD * RATE_TOKEN / 1000;
     const referrer = benf;
     const bReferrer = await ewToken.balanceOf(benf);
-    const bPlatform = await ewToken.balanceOf(plat);
+    const bUser = await ewToken.balanceOf(plat);
     const bFinance = await ewToken.balanceOf(ewFinance.address);
     const bAccount = await ewToken.balanceOf(ewAccount.address);
     const bEscrow = await ewToken.balanceOf(ewEscrow.address);
@@ -145,16 +147,14 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult = await ewFinance.charge(plat, prov, referrer, 1, 'referrer', { from: plat, value: 0 });
 
     txResult = await ewToken.balanceOf(referrer) - bReferrer;
-    txResult.should.be.bignumber.equal((PLATFORM_FEE * REWARD / 1000) * RATE_TOKEN);    
-    bPlatform.should.be.bignumber.equal(await ewToken.balanceOf(plat));
-    txResult.should.be.bignumber.equal(ewFinance.address);
-    txResult = await ewToken.balanceOf(ewAccount.address) - bAccount;
-    txResult.should.be.bignumber.equal(PLATFORM_FEE * RATE_TOKEN);
-    txResult = await ewToken.balanceOf(ewEscrow.address) - bEscrow
-    txResult.should.be.bignumber.equal(PROVIDER_FEE * RATE_TOKEN);
-
+    txResult.should.be.bignumber.equal(refReward);
+    txResult = bUser - await ewToken.balanceOf(plat);
+    txResult.should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * RATE_TOKEN - entireDiscount);
+    bFinance.should.be.bignumber.equal(await ewToken.balanceOf(ewFinance.address));
+    bAccount.should.be.bignumber.equal(await ewToken.balanceOf(ewAccount.address) - PLATFORM_FEE * RATE_TOKEN);
+    bEscrow.should.be.bignumber.equal(await ewToken.balanceOf(ewEscrow.address) - PROVIDER_FEE * RATE_TOKEN);
     txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
-    txResult.should.be.bignumber.equal((PLATFORM_FEE * (REWARD + DISCOUNT) / 1000) * RATE_TOKEN);   
+    txResult.should.be.bignumber.equal(entireDiscount + refReward);
   });
 
 

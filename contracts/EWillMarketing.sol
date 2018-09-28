@@ -128,8 +128,10 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
                            address _provider,
                            address _referrer) public onlyFinance returns (uint256 discount, uint256 refReward) {
         (discount, refReward) = referrerDiscount(_platformFee, _providerFee, _provider, _referrer);
+        if (address(0x0) != _referrer) {
+            token.safeTransfer(_referrer, refReward);
+        }
         token.safeTransfer(tx.origin, discount);
-        token.safeTransfer(_referrer, refReward);
     }
 
     // Internal
