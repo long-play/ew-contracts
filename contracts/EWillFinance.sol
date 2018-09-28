@@ -23,7 +23,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
     uint256 public exchangeLimit;                           // exchanging limit, in percent of total supply
-    uint256 public referrerDiscount;                        // discount if referenced, in percent
 
     EWillMarketingIf public marketingWallet;
     EWillAccountIf public accountWallet;
@@ -57,7 +56,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
         exchangeFee = 5;
         exchangeLimit = 5;
-        referrerDiscount = 0;
     }
 
     // Configuration
@@ -91,12 +89,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         require(_percent >= 0);
         require(_percent < 100);
         exchangeLimit = _percent;
-    }
-
-    function setReferrerDiscount(uint256 _percent) public onlyOwner {
-        require(_percent >= 0);
-        require(_percent < 50);
-        referrerDiscount = _percent;
     }
 
     function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
