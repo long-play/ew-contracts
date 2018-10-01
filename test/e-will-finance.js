@@ -1,9 +1,9 @@
-const EWillToken = artifacts.require("EWillToken");
-const EWillEscrow = artifacts.require("EWillEscrow");
-const EWillAccount = artifacts.require("EWillAccount");
-const EWillPlatform = artifacts.require("EWillPlatform");
+const EWillToken = artifacts.require('EWillToken');
+const EWillEscrow = artifacts.require('EWillEscrow');
+const EWillAccount = artifacts.require('EWillAccount');
+const EWillPlatform = artifacts.require('EWillPlatform');
 const EWillMarketing = artifacts.require('EWillMarketing')
-const EWillFinance = artifacts.require("EWillFinance");
+const EWillFinance = artifacts.require('EWillFinance');
 const keccak256 = require('js-sha3').keccak256;
 const BN = require('bn.js');
 const TestUtils = require('./test-utils.js');
@@ -46,7 +46,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
   let ewMarketing = null;
   let txResult, txEvent;
 
-  it("should have a correct name", async () => {
+  it('should have a correct name', async () => {
     ewToken = await EWillToken.new(TOKEN_SUPPLY);
     ewEscrow = await EWillEscrow.new(ewToken.address, 70);
     ewAccount = await EWillAccount.new(ewToken.address, 1000, admin);
@@ -68,7 +68,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     name.should.be.equal('E-will Finance');
   });
 
-  it("should configure the contract", async () => {
+  it('should configure the contract', async () => {
     await ewToken.addMerchant(ewEscrow.address);
     await ewToken.addMerchant(ewAccount.address);
     await ewToken.addMerchant(ewFinance.address);
@@ -93,7 +93,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult = await ewEscrow.topup(75.0e+18, { from: prov });
   });
 
-  it("should charge", async () => {
+  it('should charge', async () => {
     const TKN_VALUE = 0;
     const bPlatform = await ewToken.balanceOf(plat);
     const bFinance = await ewToken.balanceOf(ewFinance.address);
@@ -112,7 +112,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(PROVIDER_FEE * RATE_TOKEN);
   });
 
-  it("should charge with ethers", async () => {
+  it('should charge with ethers', async () => {
     const ETH_VALUE = 7.0e+15;
     const ePlatform = await TestUtils.getBalance(ewFinance.address);
     const bPlatform = await ewToken.balanceOf(plat);
@@ -134,7 +134,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(PROVIDER_FEE * RATE_TOKEN);
   });
 
-  it("should charge with referrer reward", async () => {
+  it('should charge with referrer reward', async () => {
     const entireDiscount = (PLATFORM_FEE * DISCOUNT + PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * RATE_TOKEN / 1000;
     const refReward = PLATFORM_FEE * REWARD * RATE_TOKEN / 1000;
     const referrer = benf;
@@ -158,7 +158,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(entireDiscount + refReward);
   });
 
-  it("should refund a user", async () => {
+  it('should refund a user', async () => {
     const bEscrow = await ewToken.balanceOf(ewEscrow.address);
     const bUser = await ewToken.balanceOf(user);
     const refundAmount = 15.0e+18;
@@ -172,7 +172,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(refundAmount);
   });
 
-  it("should reward a provider", async () => {
+  it('should reward a provider', async () => {
     const rewardAmount = 6.0e+18;
     const providers = await ewEscrow.providers.call(prov);
     providers[1].should.be.bignumber.equal(await ewToken.balanceOf(prov));
@@ -186,7 +186,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
 
   });
 
-  it("should exchange the tokens", async () => {
+  it('should exchange the tokens', async () => {
     const TKN_VALUE = 5.0e+15;
     const bUser = await ewToken.balanceOf(user);
     const bFinance = await ewToken.balanceOf(ewFinance.address);
@@ -202,19 +202,19 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(TKN_VALUE * ((100 - EXCHG_FEE) / 100) * (RATE_ETHER / RATE_TOKEN));
   });
 
-  it("should check how many token", async () => {
+  it('should check how many token', async () => {
     txResult = await ewFinance.centsToTokens(PROVIDER_FEE);
     txResult.should.be.bignumber.equal(PROVIDER_FEE * RATE_TOKEN);
   });
 
-  it("should check the total fee of 0 years", async () => {
+  it('should check the total fee of 0 years', async () => {
     txResult = await ewFinance.totalFee(0, 0, 0);
     txResult[0].should.be.bignumber.equal(0);
     txResult[1].should.be.bignumber.equal(0);
     txResult[2].should.be.bignumber.equal(0);
   });
 
-  it("should check the total fee of 2 years, without an reward and a subsidy", async () => {
+  it('should check the total fee of 2 years, without an reward and a subsidy', async () => {
     txResult = await ewFinance.totalFee(2, 0, 0);
     txResult[0].should.be.bignumber.equal(PLATFORM_FEE  * 2);
     txResult[1].should.be.bignumber.equal(0);
@@ -226,21 +226,21 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult[2].should.be.bignumber.equal(0);
   });
 
-  it("should check the total fee of 2 years with remuneration and subsidy", async () => {
+  it('should check the total fee of 2 years with remuneration and subsidy', async () => {
     txResult = await ewFinance.totalFee(2, prov, benf);
     txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
     txResult[1].should.be.bignumber.equal(((PLATFORM_FEE * REWARD) * 2) / 1000);
     txResult[2].should.be.bignumber.equal(((PLATFORM_FEE * DISCOUNT + PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * 2) / 1000);
   });
 
-  it("should check the total fee ethers of 2 years", async () => {
+  it('should check the total fee ethers of 2 years', async () => {
     txResult = await ewFinance.totalFeeEthers(2, prov, benf);
     txResult[0].should.be.bignumber.equal(((PLATFORM_FEE + PROVIDER_FEE) * 2) * RATE_ETHER);
     txResult[1].should.be.bignumber.equal((((PLATFORM_FEE * REWARD) * 2) / 1000) * RATE_ETHER);
     txResult[2].should.be.bignumber.equal((((PLATFORM_FEE * DISCOUNT + PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * 2) / 1000) * RATE_ETHER);
   });
 
-  it("should check the total fee token of 2 years", async () => {
+  it('should check the total fee token of 2 years', async () => {
     txResult = await ewFinance.totalFeeTokens(2, prov, benf);
     txResult[0].should.be.bignumber.equal(((PLATFORM_FEE + PROVIDER_FEE) * 2) * RATE_TOKEN);
     txResult[1].should.be.bignumber.equal((((PLATFORM_FEE * REWARD) * 2) / 1000) * RATE_TOKEN);
