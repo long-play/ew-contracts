@@ -23,7 +23,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     uint256 public rateToken;                               // exchange rate, tokenweis per cent
     uint256 public exchangeFee;                             // exchanging token->ether fee in percent
     uint256 public exchangeLimit;                           // exchanging limit, in percent of total supply
-    uint256 public referrerDiscount;                        // discount if referenced, in percent
 
     EWillMarketingIf public marketingWallet;
     EWillAccountIf public accountWallet;
@@ -57,7 +56,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
         exchangeFee = 5;
         exchangeLimit = 5;
-        referrerDiscount = 0;
     }
 
     // Configuration
@@ -91,12 +89,6 @@ contract EWillFinance is EWillFinanceIf, Ownable {
         require(_percent >= 0);
         require(_percent < 100);
         exchangeLimit = _percent;
-    }
-
-    function setReferrerDiscount(uint256 _percent) public onlyOwner {
-        require(_percent >= 0);
-        require(_percent < 50);
-        referrerDiscount = _percent;
     }
 
     function setAnnaulPlatformFee(uint256 _fee) public onlyOwner {
@@ -147,15 +139,15 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     function charge(address _customer, address _provider, address _referrer, uint64 _years, bytes32 _note) public payable onlyPlatform {
-        // get the fee amounts
-        uint256 fee = 0;
-        (fee,) = totalFeeTokens(_years, _provider, _referrer);
-
         // buy tokens
         if (msg.value > 0) {
             uint256 amount = msg.value.mul(rateToken).div(rateEther);
             token.safeTransfer(_customer, amount);
         }
+
+        // get the fee amounts
+        uint256 fee = 0;
+        (fee,) = applyDiscount(_years, _provider, _referrer);
 
         // charge fee in tokens
         token.charge(_customer, fee, _note);
@@ -174,5 +166,16 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
     function reward(address _provider, uint256 _amount, uint256 _willId) public onlyPlatform {
         escrowWallet.fund(_provider, _amount, _willId);
+    }
+
+    // Internal
+    function applyDiscount(uint64 _years, address _provider, address _referrer) internal returns (uint256 fee, uint256 refReward, uint256 subsidy) {
+        (fee, ) = escrowWallet.providerInfo(_provider);
+        uint256 fullPlatformFee = platformFee(_years).mul(rateToken);
+        uint256 fullProviderFee = fee.mul(_years).mul(rateToken);
+        if (address(0x0) != address(marketingWallet)) {
+            (subsidy, refReward) = marketingWallet.applyDiscount(fullPlatformFee, fullProviderFee, _provider, _referrer);
+        }
+        fee = fullPlatformFee.add(fullProviderFee);
     }
 }
