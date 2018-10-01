@@ -27,17 +27,17 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     Declined: 5
   };
 
-  const ONE_YEAR     = 365 * 24 * 3600; // in seconds
-  const TOKEN_SUPPLY = 100.0e+21;   // 100,000 EWILLs
-  const PLATFORM_FEE = 1500;        // cents, $15
-  const PROVIDER_FEE = 2000;        // cents, $20
-  const RATE_TOKEN   = 1.0e+14;     // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER   = 1.0e+13;     // weis per cent, 1000 $/Ether
-  const EXCHG_FEE    = 5;           // %
-  const DISCOUNT = 200;             // 20%
-  const REWARD = 100;               // 10%
-  const PROVIDER_DEAFULT_DSC = 300; // 30%
-  const PROVIDER_SPECIFIC_DSC = 400;// 40%
+  const ONE_YEAR              = 1
+  const TOKEN_SUPPLY          = 100.0e+21;       // 100,000 EWILLs
+  const PLATFORM_FEE          = 1500;            // cents, $15
+  const PROVIDER_FEE          = 2000;            // cents, $20
+  const RATE_TOKEN            = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER            = 1.0e+13;         // weis per cent, 1000 $/Ether
+  const EXCHG_FEE             = 5;               // %
+  const DISCOUNT              = 200;             // 20%
+  const REWARD                = 100;             // 10%
+  const PROVIDER_DEAFULT_DSC  = 300;             // 30%
+  const PROVIDER_SPECIFIC_DSC = 400;             // 40%
 
   let ewFinance = null;
   let ewAccount = null;
@@ -94,17 +94,18 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
   });
 
   it("should charge", async () => {
+    const TKN_VALUE = 0;
     const bPlatform = await ewToken.balanceOf(plat);
     const bFinance = await ewToken.balanceOf(ewFinance.address);
     const bAccount = await ewToken.balanceOf(ewAccount.address);
     const bEscrow = await ewToken.balanceOf(ewEscrow.address);
 
-    txResult = await ewFinance.charge(plat, prov, 0x0, 1, 'tokens', { from: plat, value: 0 });
+    txResult = await ewFinance.charge(plat, prov, 0x0, 1, 'tokens', { from: plat, value: TKN_VALUE });
 
     txResult = bPlatform - await ewToken.balanceOf(plat)
     txResult.should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * RATE_TOKEN);
     txResult = await ewToken.balanceOf(ewFinance.address) - bFinance;
-    txResult.should.be.bignumber.equal(0);
+    txResult.should.be.bignumber.equal(TKN_VALUE);
     txResult = await ewToken.balanceOf(ewAccount.address) - bAccount;
     txResult.should.be.bignumber.equal(PLATFORM_FEE * RATE_TOKEN);
     txResult = await ewToken.balanceOf(ewEscrow.address) - bEscrow;
@@ -157,9 +158,32 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(entireDiscount + refReward);
   });
 
+  it("should refund a user", async () => {
+    const bEscrow = await ewToken.balanceOf(ewEscrow.address);
+    const bUser = await ewToken.balanceOf(user);
+    const refundAmount = 15.0e+18;
+
+    txResult = await ewFinance.refund(user, refundAmount, 0, { from: plat });
+    txEvent = TestUtils.findEvent(txResult.logs, 'Refunded');
+    txResult = await ewToken.balanceOf(user) - bUser;
+    txResult.should.be.bignumber.equal(refundAmount);
+
+    txResult = bEscrow - await ewToken.balanceOf(ewEscrow.address);
+    txResult.should.be.bignumber.equal(refundAmount);
+  });
 
   it("should reward a provider", async () => {
-    txResult = await ewFinance.reward(prov, 1500, 0, { from: plat });
+    const rewardAmount = 6.0e+18;
+    const providers = await ewEscrow.providers.call(prov);
+    providers[1].should.be.bignumber.equal(await ewToken.balanceOf(prov));
+
+    txResult = await ewFinance.reward(prov, rewardAmount, 0, { from: plat });
+    txEvent = TestUtils.findEvent(txResult.logs, 'Funded');
+
+    const providersNew = await ewEscrow.providers.call(prov);
+    txResult = providersNew[1] - providers[1]; 
+    txResult.should.be.bignumber.equal(rewardAmount);
+
   });
 
   it("should exchange the tokens", async () => {
@@ -176,5 +200,50 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult.should.be.bignumber.equal(TKN_VALUE);
     txResult = eFinance - await TestUtils.getBalance(ewFinance.address);
     txResult.should.be.bignumber.equal(TKN_VALUE * ((100 - EXCHG_FEE) / 100) * (RATE_ETHER / RATE_TOKEN));
+  });
+
+  it("should check how many token", async () => {
+    txResult = await ewFinance.centsToTokens(PROVIDER_FEE);
+    txResult.should.be.bignumber.equal(PROVIDER_FEE * RATE_TOKEN);
+  });
+
+  it("should check the total fee of 0 years", async () => {
+    txResult = await ewFinance.totalFee(0, 0, 0);
+    txResult[0].should.be.bignumber.equal(0);
+    txResult[1].should.be.bignumber.equal(0);
+    txResult[2].should.be.bignumber.equal(0);
+  });
+
+  it("should check the total fee of 2 years, without an reward and a subsidy", async () => {
+    txResult = await ewFinance.totalFee(ONE_YEAR * 2, 0, 0);
+    txResult[0].should.be.bignumber.equal(PLATFORM_FEE  * 2);
+    txResult[1].should.be.bignumber.equal(0);
+    txResult[2].should.be.bignumber.equal(0);
+
+    txResult = await ewFinance.totalFee(ONE_YEAR * 2, prov, 0);
+    txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
+    txResult[1].should.be.bignumber.equal(0);
+    txResult[2].should.be.bignumber.equal(0);
+  });
+
+  it("should check the total fee of 2 years with remuneration and subsidy", async () => {
+    txResult = await ewFinance.totalFee(ONE_YEAR * 2, prov, benf);
+    txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
+    txResult[1].should.be.bignumber.equal(DISCOUNT + REWARD);
+    txResult[2].should.be.bignumber.equal(PROVIDER_FEE + DISCOUNT);
+  });
+
+  it("should check the total fee ethers of 2 years", async () => {
+    txResult = await ewFinance.totalFeeEthers(ONE_YEAR * 2, prov, benf);
+    txResult[0].should.be.bignumber.equal(((PLATFORM_FEE + PROVIDER_FEE) * 2) * RATE_ETHER);
+    txResult[1].should.be.bignumber.equal((DISCOUNT + REWARD) * RATE_ETHER);
+    txResult[2].should.be.bignumber.equal((PROVIDER_FEE + DISCOUNT) * RATE_ETHER);
+  });
+
+  it("should check the total fee token of 2 years", async () => {
+    txResult = await ewFinance.totalFeeTokens(ONE_YEAR * 2, prov, benf);
+    txResult[0].should.be.bignumber.equal(((PLATFORM_FEE + PROVIDER_FEE) * 2) * RATE_TOKEN);
+    txResult[1].should.be.bignumber.equal((DISCOUNT + REWARD) * RATE_TOKEN);
+    txResult[2].should.be.bignumber.equal((PROVIDER_FEE + DISCOUNT) * RATE_TOKEN);
   });
 });
