@@ -6,17 +6,17 @@ const TestUtils = require('./test-utils.js');
 
 contract('EWillMarketing', function([admin, marketer, user, referrer]) {
 
-  const TOKEN_SUPPLY = 100.0e+21;   // 100,000 EWILLs
-  const PLATFORM_FEE = 200.0e+18;   // 200 EWILLs
-  const PROVIDER_FEE = 70.0e+18;    // 70 EWILLs
-  const DISCOUNT = 200;             // 20%
-  const REWARD = 100;               // 10%
-  const PERCENT_MULTIPLIER = 1000;  // 1000 is 100%
-  const PROVIDER_DEAFULT = 0x0;     // any provider
-  const PROVIDER_SPECIFIC = 0x1;    // specific provider
-  const PROVIDER_OTHER = 0x2;       // other provider
-  const PROVIDER_DEAFULT_DSC = 300; // 30%
-  const PROVIDER_SPECIFIC_DSC = 400;// 40%
+  const TOKEN_SUPPLY          = 100.0e+21; // 100,000 EWILLs
+  const PLATFORM_FEE          = 200.0e+18; // 200 EWILLs
+  const PROVIDER_FEE          = 70.0e+18;  // 70 EWILLs
+  const DISCOUNT              = 200;       // 20%
+  const REWARD                = 100;       // 10%
+  const PERCENT_MULTIPLIER    = 1000;      // 1000 is 100%
+  const PROVIDER_DEAFULT      = 0x0;       // any provider
+  const PROVIDER_SPECIFIC     = 0x1;       // specific provider
+  const PROVIDER_OTHER        = 0x2;       // other provider
+  const PROVIDER_DEAFULT_DSC  = 300;       // 30%
+  const PROVIDER_SPECIFIC_DSC = 400;       // 40%
 
   let ewMarketing = null;
   let ewToken = null;
