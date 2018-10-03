@@ -340,7 +340,7 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
     txResult[1].should.be.bignumber.equal(PLATFORM_FEE * standartDiscount / PERCENT_MULTIPLIER);
   });
 
-    it('should get standаrt discount whith other provider', async () => {
+  it('should get standаrt discount whith other provider', async () => {
     let standartDiscount = 200;
 
     await ewMarketing.createRefCode(referrerStandart, { from: finance });
