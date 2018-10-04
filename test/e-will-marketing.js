@@ -283,7 +283,7 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
   it('should check the create of a discount, if the reward is set to more pecent multiplier', async () => {
     const referrer = 0xcaccbb6;
     let isCaught = false;
-    let newValue = 1100;
+    let bigReward = 1100;
 
     try {
       await ewMarketing.addDiscount(referrer,
