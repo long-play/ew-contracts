@@ -17,7 +17,6 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
   const PROVIDER_OTHER        = 0x2;       // other provider
   const PROVIDER_DEAFULT_DSC  = 340;       // 34%
   const PROVIDER_SPECIFIC_DSC = 450;       // 45%
-  const PROVIDER_OTHER_DSC    = 550;       // 55%
 
   const referrerStandart = 0xcaccba1;
   const referrerCustom = 0xcaccbb2;
@@ -43,8 +42,8 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
                                   Date.now() / 1000 + 60,
                                   DISCOUNT,
                                   REWARD,
-                                  [PROVIDER_DEAFULT,     PROVIDER_SPECIFIC,     PROVIDER_OTHER ],
-                                  [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC, PROVIDER_OTHER_DSC],
+                                  [PROVIDER_DEAFULT,     PROVIDER_SPECIFIC],
+                                  [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                   { from: marketer });
   });
 
@@ -94,7 +93,7 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
     txResult = await ewMarketing.applyDiscount(PLATFORM_FEE, PROVIDER_FEE, PROVIDER_OTHER, referrer, { from: finance });
 
     const discountPl = PLATFORM_FEE * DISCOUNT / PERCENT_MULTIPLIER;
-    const discountPr = PROVIDER_FEE * PROVIDER_OTHER_DSC / PERCENT_MULTIPLIER;
+    const discountPr = PROVIDER_FEE * PROVIDER_DEAFULT_DSC / PERCENT_MULTIPLIER;
     const reward = PLATFORM_FEE * REWARD / PERCENT_MULTIPLIER;
 
     txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
@@ -162,42 +161,14 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   });
 
-  it('should add discount and apply discount for other provider', async () => {
+  it('should add discount other provider and apply a discount for specific provider, not in a list for subsidy', async () => {
     await ewMarketing.addDiscount(referrerCustom,
                                   Date.now() / 1000,
                                   Date.now() / 1000 + 60,
                                   DISCOUNT,
                                   REWARD,
-                                  [PROVIDER_OTHER],
-                                  [PROVIDER_OTHER_DSC],
-                                  { from: marketer });
-
-    const bMarketing = await ewToken.balanceOf(ewMarketing.address);
-    const bFinance = await ewToken.balanceOf(finance);
-    const bReferrer = await ewToken.balanceOf(referrerCustom);
-
-    txResult = await ewMarketing.applyDiscount(PLATFORM_FEE, PROVIDER_FEE, PROVIDER_OTHER, referrerCustom, { from: finance });
-
-    const discountPl = PLATFORM_FEE * DISCOUNT / PERCENT_MULTIPLIER;
-    const discountPr = PROVIDER_FEE * PROVIDER_OTHER_DSC / PERCENT_MULTIPLIER;
-    const reward = PLATFORM_FEE * REWARD / PERCENT_MULTIPLIER;
-
-    txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
-    txResult.should.be.bignumber.equal(discountPl + discountPr + reward);
-    txResult = await ewToken.balanceOf(finance) - bFinance;
-    txResult.should.be.bignumber.equal(discountPl + discountPr);
-    txResult = await ewToken.balanceOf(referrerCustom) - bReferrer;
-    txResult.should.be.bignumber.equal(reward);
-  });
-
-  it('should add discount other provider and apply a discount for specific provider', async () => {
-    await ewMarketing.addDiscount(referrerCustom,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
-                                  DISCOUNT,
-                                  REWARD,
-                                  [PROVIDER_OTHER],
-                                  [PROVIDER_OTHER_DSC],
+                                  [PROVIDER_DEAFULT],
+                                  [PROVIDER_DEAFULT_DSC],
                                   { from: marketer });
 
     const bMarketing = await ewToken.balanceOf(ewMarketing.address);
