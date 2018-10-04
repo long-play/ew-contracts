@@ -290,7 +290,7 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
                                     Date.now() / 1000,
                                     Date.now() / 1000 + 60,
                                     DISCOUNT,
-                                    newValue,
+                                    bigReward,
                                     [PROVIDER_SPECIFIC],
                                     [PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
