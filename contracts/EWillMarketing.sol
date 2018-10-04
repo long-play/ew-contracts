@@ -107,7 +107,6 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
 
     function referrerDiscount(uint256 _platformFee,
                               uint256 _providerFee,
-                              //todo: add uint64 _years,
                               address _provider,
                               address _referrer) public view returns (uint256 discount, uint256 refReward) {
         Discount storage discountInfo = discounts[_referrer];
