@@ -74,6 +74,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         emit Banned(_provider);
     }
 
+    function unbanProvider(address _provider) public onlyOwner {
+        require(providers[_provider].state == ProviderState.Banned);
+
+        providers[_provider].state = ProviderState.Activated;
+        emit Activated(_provider, ProviderState.Activated);
+    }
+
     function updateProviderInfo(uint256 _annualFee, uint256 _newInfoId) public {
         require(isProviderValid(msg.sender) == true);
 
