@@ -140,6 +140,7 @@ contract EWillPlatform is Ownable {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         require(currentTime() > will.updatedAt + PERIOD_LENGTH);
+        require(currentTime() < will.validTill);
 
         if (will.newFee > 0) {
             // update annual fee and set last update to the start of the new year if it's a new year
