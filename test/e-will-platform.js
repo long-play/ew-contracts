@@ -113,7 +113,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Created);
 
       const will = await ewPlatform.wills.call(willId);
-      will[11].should.be.equal('Test will for EV');
+      will[12].should.be.equal('Test will for EV');
     });
 
     it('should activate the will', async () => {
@@ -252,7 +252,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       try {
         await TestUtils.gotoFuture(twenty_nine_days);
-        txResult = await ewPlatform.refreshWill(willId, { from: deleg });
+        txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
         txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
           isCaught = true;
@@ -264,7 +264,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       const thirty_days = 30 * 24 * 3600;
 
       await TestUtils.gotoFuture(thirty_days);
-      txResult = await ewPlatform.refreshWill(willId, { from: deleg });
+      txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       txEvent.args.willId.should.be.bignumber.equal(willId);
       txEvent.args.owner.should.be.bignumber.equal(user);
@@ -318,7 +318,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       const thirty_days = 30 * 24 * 3600;
 
       await TestUtils.gotoFuture(thirty_days);
-      txResult = await ewPlatform.refreshWill(willId, { from: deleg });
+      txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       txEvent.args.willId.should.be.bignumber.equal(willId);
       txEvent.args.owner.should.be.bignumber.equal(user);
@@ -354,7 +354,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       try {
         await TestUtils.gotoFuture(thirty_days);
-        txResult = await ewPlatform.refreshWill(willId, { from: deleg });
+        txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
         txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
           isCaught = true;
@@ -395,7 +395,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       try {
         await TestUtils.gotoFuture(thirty_days);
-        txResult = await ewPlatform.refreshWill(willId, { from: deleg });
+        txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
         txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
           isCaught = true;

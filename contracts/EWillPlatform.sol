@@ -25,6 +25,7 @@ contract EWillPlatform is Ownable {
         address     provider;
         uint64      validTill;
         WillState   state;
+        uint8       skippedConfirmations;
         string      title;
     }
 
@@ -39,7 +40,8 @@ contract EWillPlatform is Ownable {
     //todo: remove both mappings and add events instead
     mapping (address => uint256[]) public userWills;
     mapping (uint256 => uint256[]) public beneficiaryWills;
-    address public platformAddress;
+    address public platformAddress;                 // address of the platform to be used for contacts encryption
+    uint8 public allowedSkippedConfirmations = 0;   // number of skipped confirmation is required to release a will
 
     EWillFinanceIf public financeWallet;
     EWillEscrowIf public escrowWallet;
@@ -72,7 +74,7 @@ contract EWillPlatform is Ownable {
     }
 
     // Configuration
-    //todo: add config for contracts & public key
+    //todo: add config for contracts (financeWallet and escrowWallet) & platformAddress (to obtain public key) & allowedSkippedConfirmations
 
     // Finance calculations
     function annualPlatformFee(uint64 _years) public view returns (uint256) {
@@ -114,6 +116,7 @@ contract EWillPlatform is Ownable {
             state: WillState.Created,
             beneficiaryHash: _beneficiaryHash,
             decryptionKey: 0,
+            skippedConfirmations: 0,
             updatedAt: currentTime(),
             validTill: _years,
             provider: _provider
@@ -136,7 +139,7 @@ contract EWillPlatform is Ownable {
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
 
-    function refreshWill(uint256 _willId) public onlyProvider(_willId) {
+    function refreshWill(uint256 _willId, bool _confirmed) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
         require(currentTime() > will.updatedAt + PERIOD_LENGTH);
@@ -150,6 +153,13 @@ contract EWillPlatform is Ownable {
         }
         else {
             will.updatedAt = currentTime();
+        }
+
+        if (_confirmed) {
+            will.skippedConfirmations = 0;
+        }
+        else if (will.skippedConfirmations < 255) {
+            will.skippedConfirmations++;
         }
 
         financeWallet.reward(will.provider, refreshingReward(will.annualFee), _willId);
@@ -180,14 +190,14 @@ contract EWillPlatform is Ownable {
     function applyWill(uint256 _willId, uint256 _decryptionKey) public onlyProvider(_willId) {
         Will storage will = wills[_willId];
         require(will.state == WillState.Activated);
+        // allow to release the will if the user skipped more than allowed number of confirmations
+        // or if the subscription is ending
+        require(will.skippedConfirmations >= allowedSkippedConfirmations || will.validTill < currentTime() + PERIOD_LENGTH);
 
         will.decryptionKey = _decryptionKey;
         will.state = WillState.Pending;
         will.updatedAt = currentTime();
         beneficiaryWills[will.beneficiaryHash].push(_willId);
-
-        //todo: send a small amount of ethers to the beneficiary
-        // it's impossible for the current paradigm due to unknown address of a beneficiary
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
