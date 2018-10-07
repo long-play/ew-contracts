@@ -198,6 +198,9 @@ contract EWillPlatform is Ownable {
 
         will.state = WillState.Claimed;
 
+        uint256 wholePeriods = (will.validTill - will.updatedAt) / PERIOD_LENGTH;
+        financeWallet.reward(will.provider, refreshingReward(will.annualFee).mul(wholePeriods), _willId);
+
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
 
@@ -218,10 +221,11 @@ contract EWillPlatform is Ownable {
         require(will.state == WillState.Activated);
         require(will.validTill > currentTime());
 
-        uint256 wholePeriods = (will.validTill - currentTime()) / PERIOD_LENGTH;
         will.state = WillState.Deleted;
         will.updatedAt = currentTime();
-        financeWallet.refund(will.owner, refreshingReward(will.annualFee).mul(wholePeriods).div(NUMBER_OF_PERIODS), _willId);
+
+        uint256 wholePeriods = (will.validTill - currentTime()) / PERIOD_LENGTH;
+        financeWallet.refund(will.owner, refreshingReward(will.annualFee).mul(wholePeriods), _willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
     }
