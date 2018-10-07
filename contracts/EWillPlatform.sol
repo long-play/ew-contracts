@@ -37,9 +37,6 @@ contract EWillPlatform is Ownable {
 
     // State Variables
     mapping (uint256 => Will) public wills;
-    //todo: remove both mappings and add events instead
-    mapping (address => uint256[]) public userWills;
-    mapping (uint256 => uint256[]) public beneficiaryWills;
     address public platformAddress;                 // address of the platform to be used for contacts encryption
     uint8 public allowedSkippedConfirmations = 0;   // number of skipped confirmation is required to release a will
 
@@ -48,9 +45,10 @@ contract EWillPlatform is Ownable {
 
     // Events
     event WillCreated(address indexed owner, address indexed provider, uint256 willId);
-    event WillStateUpdated(uint256 indexed willId, address indexed owner, WillState newState);
-    event WillRefreshed(uint256 indexed willId, address indexed owner);
+    event WillStateUpdated(uint256 indexed willId, address indexed owner, WillState indexed newState);
+    event WillRefreshed(uint256 indexed willId, address indexed owner, uint8 skippedConfirmations);
     event WillProlonged(uint256 indexed willId, address indexed owner, uint256 validTill);
+    event WillReleased(uint256 indexed willId, uint256 indexed beneficiaryHash);
 
     // Modifiers
     modifier onlyWillOwner(uint256 _willId) {
@@ -86,14 +84,6 @@ contract EWillPlatform is Ownable {
     }
 
     // Public Will
-    function numberOfUserWills(address _user) public view returns (uint256) {
-        return userWills[_user].length;
-    }
-
-    function numberOfBeneficiaryWills(address _beneficiary) public view returns (uint256) {
-        return beneficiaryWills[addressKeccak256(_beneficiary)].length;
-    }
-
     function createWill(string _title, uint256 _willId, uint256 _storageId, uint64 _years, uint256 _beneficiaryHash, address _provider, address _referrer) public payable {
         require(escrowWallet.isProviderValid(_provider));
         require(wills[_willId].state == WillState.None);
@@ -121,7 +111,6 @@ contract EWillPlatform is Ownable {
             validTill: _years,
             provider: _provider
         });
-        userWills[msg.sender].push(_willId);
 
         // emit events
         emit WillCreated(msg.sender, _provider, _willId);
@@ -164,7 +153,7 @@ contract EWillPlatform is Ownable {
 
         financeWallet.reward(will.provider, refreshingReward(will.annualFee), _willId);
 
-        emit WillRefreshed(_willId, will.owner);
+        emit WillRefreshed(_willId, will.owner, will.skippedConfirmations);
     }
 
     function prolongWill(uint256 _willId, uint64 _years) public payable {
@@ -197,9 +186,9 @@ contract EWillPlatform is Ownable {
         will.decryptionKey = _decryptionKey;
         will.state = WillState.Pending;
         will.updatedAt = currentTime();
-        beneficiaryWills[will.beneficiaryHash].push(_willId);
 
         emit WillStateUpdated(_willId, will.owner, will.state);
+        emit WillReleased(_willId, will.beneficiaryHash);
     }
 
     function claimWill(uint256 _willId) public {

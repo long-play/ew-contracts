@@ -46,13 +46,13 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
   let ewToken = null;
   let txResult, txEvent;
 
-    async function createActivatedWill(willId, prov, deleg, user, amount) {
-      txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: amount });
-      txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
-      txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
-  
-      txResult = await ewPlatform.activateWill(willId, { from: deleg });
-      txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+  async function createActivatedWill(willId, prov, deleg, user, amount) {
+    txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0', { from: user, value: amount });
+    txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
+    txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+
+    txResult = await ewPlatform.activateWill(willId, { from: deleg });
+    txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
   }
 
   describe('#configuration', () => {
@@ -102,7 +102,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should create a will', async () => {
-      txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0' /*todo: referrer*/, { from: user, value: 20.0e+15 });
+      txResult = await ewPlatform.createWill('Test will for EV', willId, 0x5108a9e, 2, benHash.toString(10), prov, '0', { from: user, value: 20.0e+15 });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillCreated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
       txEvent.args.owner.should.be.bignumber.equal(user);
