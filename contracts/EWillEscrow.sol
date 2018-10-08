@@ -74,6 +74,13 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         emit Banned(_provider);
     }
 
+    function unbanProvider(address _provider) public onlyOwner {
+        require(providers[_provider].state == ProviderState.Banned);
+
+        providers[_provider].state = ProviderState.Activated;
+        emit Activated(_provider, ProviderState.Activated);
+    }
+
     function updateProviderInfo(uint256 _annualFee, uint256 _newInfoId) public {
         require(isProviderValid(msg.sender) == true);
 
@@ -107,6 +114,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     function changeDelegate(address _delegate) public {
         require(_delegate != 0);
         require(_delegate != msg.sender);
+        require(isActiveState(providers[msg.sender].state) == true);
 
         delete delegates[providers[msg.sender].delegate];
         providers[msg.sender].delegate = _delegate;

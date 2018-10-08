@@ -36,6 +36,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
   const EXCHG_FEE             = 5;               // %
   const DISCOUNT              = 230;             // 23%
   const REWARD                = 120;             // 12%
+  const PROVIDER_DEAFULT      = 0x0;             // any provider
   const PROVIDER_DEAFULT_DSC  = 340;             // 34%
   const PROVIDER_SPECIFIC_DSC = 450;             // 45%
 
@@ -77,8 +78,8 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
                                   Date.now() / 1000 + ONE_YEAR,
                                   DISCOUNT,
                                   REWARD,
-                                  [0x0,                     prov],
-                                  [PROVIDER_DEAFULT_DSC,    PROVIDER_SPECIFIC_DSC],
+                                  [PROVIDER_DEAFULT,     prov],
+                                  [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                   { from: admin });
 
     txResult = await ewFinance.setAnnaulPlatformFee(PLATFORM_FEE, { from: admin });
@@ -219,14 +220,17 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult[0].should.be.bignumber.equal(PLATFORM_FEE  * 2);
     txResult[1].should.be.bignumber.equal(0);
     txResult[2].should.be.bignumber.equal(0);
+  });
 
+  it('should check the total amount in 2 years without remuneration and subsidies, ' +
+     'but indicating the provider', async () => {
     txResult = await ewFinance.totalFee(2, prov, 0);
     txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
     txResult[1].should.be.bignumber.equal(0);
     txResult[2].should.be.bignumber.equal(0);
   });
 
-  it('should check the total fee of 2 years with remuneration and subsidy', async () => {
+  it('should check the total fee of 2 years with reward and subsidy', async () => {
     txResult = await ewFinance.totalFee(2, prov, benf);
     txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
     txResult[1].should.be.bignumber.equal(((PLATFORM_FEE * REWARD) * 2) / 1000);
@@ -245,5 +249,42 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     txResult[0].should.be.bignumber.equal(((PLATFORM_FEE + PROVIDER_FEE) * 2) * RATE_TOKEN);
     txResult[1].should.be.bignumber.equal((((PLATFORM_FEE * REWARD) * 2) / 1000) * RATE_TOKEN);
     txResult[2].should.be.bignumber.equal((((PLATFORM_FEE * DISCOUNT + PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * 2) / 1000) * RATE_TOKEN);
+  });
+
+  it('should check total fee of 2 years, without reward', async () => {
+    const referrer = 0xcaccbb1;
+
+    await ewMarketing.addDiscount(referrer,
+                                  Date.now() / 1000,
+                                  Date.now() / 1000 + ONE_YEAR,
+                                  DISCOUNT,
+                                  0,
+                                  [PROVIDER_DEAFULT,     prov],
+                                  [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
+                                  { from: admin });
+
+    txResult = await ewFinance.totalFee(2, prov, referrer);
+    txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
+    txResult[1].should.be.bignumber.equal(0);
+    txResult[2].should.be.bignumber.equal(((PLATFORM_FEE * DISCOUNT + PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * 2) / 1000);
+  });
+
+  it('should check the total fee of 2 years with reward and subsidy, ' + 
+     'without specifying a discount when creating a discount', async () => {
+    const referrer = 0xcaccbb2;
+
+    await ewMarketing.addDiscount(referrer,
+                                  Date.now() / 1000,
+                                  Date.now() / 1000 + ONE_YEAR,
+                                  0,
+                                  REWARD,
+                                  [PROVIDER_DEAFULT,     prov],
+                                  [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
+                                  { from: admin });
+
+    txResult = await ewFinance.totalFee(2, prov, referrer);
+    txResult[0].should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * 2);
+    txResult[1].should.be.bignumber.equal(((PLATFORM_FEE * REWARD) * 2) / 1000);
+    txResult[2].should.be.bignumber.equal(((PROVIDER_FEE * PROVIDER_SPECIFIC_DSC) * 2) / 1000);
   });
 });
