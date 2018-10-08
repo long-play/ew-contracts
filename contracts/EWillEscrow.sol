@@ -114,6 +114,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     function changeDelegate(address _delegate) public {
         require(_delegate != 0);
         require(_delegate != msg.sender);
+        require(isActiveState(providers[msg.sender].state) == true);
 
         delete delegates[providers[msg.sender].delegate];
         providers[msg.sender].delegate = _delegate;
