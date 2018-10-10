@@ -73,20 +73,22 @@ contract EWillPlatform is Ownable {
 
     // Configuration
     function setFinanceWallet(address _finance) public onlyOwner {
+        require(_finance != 0x0);
         financeWallet = EWillFinanceIf(_finance);
     }
 
     function setEscrowWallet(address _escrow) public onlyOwner {
+        require(_escrow != 0x0);
         escrowWallet = EWillEscrowIf(_escrow);
     }
 
     function setPlatformAddress(address _platform) public onlyOwner {
-        require(platformAddress == 0x0);
+        require(_platform != 0x0);
         platformAddress = _platform;
     }
 
     function setAllowedSkippedConfirmations(uint8 _allowedSkippedConfirmations) public onlyOwner {
-        require(allowedSkippedConfirmations < 255);
+        require(_allowedSkippedConfirmations < 255);
         allowedSkippedConfirmations = _allowedSkippedConfirmations;
     }
 

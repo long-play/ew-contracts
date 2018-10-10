@@ -84,10 +84,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txResult = await ewFinance.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
 
       const annualPlatformFee = await ewFinance.platformFee.call(1);
-      annualPlatformFee.should.be.bignumber.equal('500');
+      annualPlatformFee.should.be.bignumber.equal(500);
 
       txResult = await ewPlatform.annualPlatformFee.call(2);
-      txResult.should.be.bignumber.equal('1000');
+      txResult.should.be.bignumber.equal(1000);
 
       txResult = await ewEscrow.register(1000, 0x0badfeed, deleg, { from: prov });
       txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
@@ -164,7 +164,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(1 * ONE_YEAR);
         txResult = await ewPlatform.rejectWill(willId, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       } catch (err) {
           isCaught = true;
       }
@@ -212,7 +211,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       try {
         txResult = await ewPlatform.activateWill(willId, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       } catch(err) {
           isCaught = true;
       }
@@ -224,7 +222,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       try {
         txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       } catch(err) {
           isCaught = true;
       }
@@ -236,7 +233,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       try { 
         txResult = await ewPlatform.claimWill(willId, { from: benf });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       } catch(err) {
         isCaught = true;
       }
@@ -259,7 +255,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(twenty_nine_days);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
           isCaught = true;
       }
@@ -298,7 +293,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(2 * ONE_YEAR - sixty_days);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
       } catch (err) {
           isCaught = true;
       }
@@ -362,7 +356,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(thirty_days);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
           isCaught = true;
       }
@@ -376,7 +369,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
       } catch (err) {
           isCaught = true;
       }
@@ -403,7 +395,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(thirty_days);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch (err) {
           isCaught = true;
       }
@@ -417,7 +408,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
       } catch (err) {
           isCaught = true;
       }
@@ -481,7 +471,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(2 * ONE_YEAR + 1);
         txResult = await ewPlatform.rejectWill(willId, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       } catch(err) {
         isCaught = true;
       }
@@ -520,7 +509,8 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should delete the will', async () => {
-      const providers = await ewEscrow.providers.call(prov);
+      //todo: test fails
+      const bProvider = await ewEscrow.providers.call(prov);
       const bUser = await ewToken.balanceOf(user);
       const forty_days = 40 * 24 * 3600;
 
@@ -531,14 +521,19 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.owner.should.be.bignumber.equal(user);
       txEvent.args.newState.should.be.bignumber.equal(WillState.Deleted);
 
-      //todo: check balance of the user and the fund of the provider
+      const newBProvider = await ewEscrow.providers.call(prov);
 
+      txResult = newBProvider[1] - bProvider[1];
+      txResult.should.be.equal(0);
+
+      txResult = await ewToken.balanceOf(user) - bUser;
+      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * 10 / 12);
     });
   });
 
   describe('#balance of the user and the fund of the provider, after claim the will', () => {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x315dead, 16)).toString(10);
-    const years = 2.5;
+    const years = 2;
 
     it('should create and activate the will', async () => {
       await createActivatedWill(willId, prov, deleg, user, amount, years);
@@ -553,9 +548,9 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should claim the will', async () => {
-      const bProvider = await ewToken.balanceOf(prov);
+      //todo: test fails
+      const bProvider = await ewEscrow.providers.call(prov);
       const bUser = await ewToken.balanceOf(user);
-      const providers = await ewEscrow.providers.call(prov);
 
       await TestUtils.gotoFuture(ONE_YEAR);
       txResult = await ewPlatform.claimWill(willId, { from: benf });
@@ -564,8 +559,13 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.owner.should.be.bignumber.equal(user);
       txEvent.args.newState.should.be.bignumber.equal(WillState.Claimed);
 
-      //todo: check balance of the user and the fund of the provider
-      
+      const newBProvider = await ewEscrow.providers.call(prov);
+
+      txResult = newBProvider[1] - bProvider[1];
+      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * 12 / 24);
+
+      txResult = await ewToken.balanceOf(user) - bUser;
+      txResult.should.be.equal(0);
     });
   });
 });
