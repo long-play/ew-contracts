@@ -508,7 +508,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       await createActivatedWill(willId, prov, deleg, user, amount, years);
     });
 
-    it('should delete the will', async () => {
+    it('should delete the will, further check fund providers and balance users', async () => {
       //todo: test fails
       const bProvider = await ewEscrow.providers.call(prov);
       const bUser = await ewToken.balanceOf(user);
@@ -547,7 +547,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Pending);
     });
 
-    it('should claim the will', async () => {
+    it('should claim the will, further check fund providers and balance users', async () => {
       //todo: test fails
       const bProvider = await ewEscrow.providers.call(prov);
       const bUser = await ewToken.balanceOf(user);
