@@ -72,7 +72,25 @@ contract EWillPlatform is Ownable {
     }
 
     // Configuration
-    //todo: add config for contracts (financeWallet and escrowWallet) & platformAddress (to obtain public key) & allowedSkippedConfirmations
+    function setFinanceWallet(address _finance) public onlyOwner {
+        require(_finance != 0x0);
+        financeWallet = EWillFinanceIf(_finance);
+    }
+
+    function setEscrowWallet(address _escrow) public onlyOwner {
+        require(_escrow != 0x0);
+        escrowWallet = EWillEscrowIf(_escrow);
+    }
+
+    function setPlatformAddress(address _platform) public onlyOwner {
+        require(_platform != 0x0);
+        platformAddress = _platform;
+    }
+
+    function setAllowedSkippedConfirmations(uint8 _allowedSkippedConfirmations) public onlyOwner {
+        require(_allowedSkippedConfirmations < 255);
+        allowedSkippedConfirmations = _allowedSkippedConfirmations;
+    }
 
     // Finance calculations
     function annualPlatformFee(uint64 _years) public view returns (uint256) {
