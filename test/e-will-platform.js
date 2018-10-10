@@ -68,7 +68,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       await ewEscrow.setFinance(ewFinance.address);
       await ewToken.transfer(user, 150.0e+18);
       await ewToken.transfer(prov, 150.0e+18);
-      await ewToken.transfer(ewFinance.address, 15.0e+18);
+      await ewToken.transfer(ewFinance.address, 15.0e+21);
 
       const name = await ewPlatform.name.call();
       name.should.be.equal('E-will Platform');
@@ -492,7 +492,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       try {
         await TestUtils.gotoFuture(ONE_YEAR);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
-        txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       } catch(err) {
         isCaught = true;
       }
