@@ -59,6 +59,15 @@ contract EWillFinance is EWillFinanceIf, Ownable {
     }
 
     // Configuration
+
+    function setAccount(address _account) public onlyOwner {
+        accountWallet = EWillAccountIf(_account);
+    }
+
+    function setEscrow(address _escrow) public onlyOwner {
+        escrowWallet = EWillEscrowIf(_escrow);
+    }
+
     function setMarketing(address _marketing) public onlyOwner {
         marketingWallet = EWillMarketingIf(_marketing);
     }
