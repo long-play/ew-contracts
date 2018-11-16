@@ -33,6 +33,8 @@ module.exports = function(deployer, network, [owner, tech]) {
   deployer.then( async () => {
     await deployer.deploy(EWillEscrow, EWillToken.address, minDepositAmount);
     const escrow = await EWillEscrow.deployed();
+    const token = await EWillToken.deployed();
+    await token.addMerchant(escrow.address);
     await escrow.register(defaultAnnualFee, defaultServiceInfoId, defaultServiceDelegate);
     await escrow.activateProvider(defaultServiceAddress, 2 /* Whitelisted */);
   });
