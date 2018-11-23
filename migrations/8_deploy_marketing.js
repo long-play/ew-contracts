@@ -16,7 +16,9 @@ module.exports = function(deployer, network, [owner, tech]) {
   }
 
   deployer.then( async () => {
+    const finance = await EWillFinance.deployed();
     await deployer.deploy(EWillMarketing, EWillFinance.address, defaultMarketer, EWillToken.address);
+    finance.setMarketing(EWillMarketing.address);
   });
 
 };
