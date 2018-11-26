@@ -366,7 +366,7 @@ contract('Integration test', function([
                 1)  register whitelist a provider
                 2)  create a will and check balance
                 3)  activate the will
-                4)  the will and check the balance of the supplier who is whitelist
+                4)  refresh the will and check the balance of the supplier who is whitelist
                 5)  prolong the will and collecting money from the user
                 6)  apply the will
                 7)  claim the will and check the balance of the provider who is on the white list
@@ -410,7 +410,7 @@ contract('Integration test', function([
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
     });
 
-    it('should the will and check the balance of the supplier who is whitelist', async () => {
+    it('should refresh the will and check the balance of the supplier who is whitelist', async () => {
       const bEscrow = await ewEscrow.providers(provwl);
       const annualFee = await ewEscrow.providers(provwl);
 
