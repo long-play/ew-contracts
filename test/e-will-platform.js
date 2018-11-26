@@ -30,13 +30,12 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     Deleted: 6
   };
 
-  const ONE_YEAR     = 365 * 24 * 3600; // in seconds
-  const TOKEN_SUPPLY = 100.0e+21;       // 100,000 EWILLs
-  const PLATFORM_FEE = 1500;            // cents, $15
-  const PROVIDER_FEE = 2000;            // cents, $20
-  const REFFERER_RWD = 10;              // %
-  const RATE_TOKEN   = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER   = 1.0e+13;         // weis per cent, 1000 $/Ether
+  const ONE_YEAR      = 365 * 24 * 3600; // in seconds
+  const PERIOD_LENGTH = 30 * 24 * 3600;  // one period per year (in seconds)
+  const PLATFORM_FEE  = 1500;            // cents, $15
+  const PROVIDER_FEE  = 2000;            // cents, $20
+  const RATE_TOKEN    = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER    = 1.0e+13;         // weis per cent, 1000 $/Ether
   const benHash = new BN(keccak256((new BN(benf.slice(2), 16)).toBuffer()), 16);
 
   let ewPlatform = null;
@@ -75,21 +74,23 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should configure the contract', async () => {
+      const infoId = 0x0badfeed;
+
       await ewToken.addMerchant(ewEscrow.address);
       await ewToken.addMerchant(ewAccount.address);
       await ewToken.addMerchant(ewFinance.address);
 
-      txResult = await ewFinance.setAnnaulPlatformFee(500, { from: admin });
+      txResult = await ewFinance.setAnnaulPlatformFee(PLATFORM_FEE, { from: admin });
       // 1 ether == $1000, 1 EWILL == $100
-      txResult = await ewFinance.setExchangeRates(1.0e+14, 1.0e+13, { from: admin });
+      txResult = await ewFinance.setExchangeRates(RATE_TOKEN, RATE_ETHER, { from: admin });
 
       const annualPlatformFee = await ewFinance.platformFee.call(1);
-      annualPlatformFee.should.be.bignumber.equal(500);
+      annualPlatformFee.should.be.bignumber.equal(PLATFORM_FEE);
 
       txResult = await ewPlatform.annualPlatformFee.call(2);
-      txResult.should.be.bignumber.equal(1000);
+      txResult.should.be.bignumber.equal(PLATFORM_FEE * 2);
 
-      txResult = await ewEscrow.register(1000, 0x0badfeed, deleg, { from: prov });
+      txResult = await ewEscrow.register(PROVIDER_FEE, infoId, deleg, { from: prov });
       txResult = await ewEscrow.activateProvider(prov, ProviderState.Activated, { from: admin });
       txResult = await ewEscrow.topup(75.0e+18, { from: prov });
     });
@@ -249,11 +250,11 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should not refresh the will, since it did not expired 30 days', async () => {
-      const twenty_nine_days = 29 * 24 * 3600;
+      const twentyNineDays = 29 * 24 * 3600;
       let isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(twenty_nine_days);
+        await TestUtils.gotoFuture(twentyNineDays);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       } catch (err) {
           isCaught = true;
@@ -262,9 +263,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should refresh the will', async () => {
-      const thirty_days = 30 * 24 * 3600;
-
-      await TestUtils.gotoFuture(thirty_days);
+      await TestUtils.gotoFuture(PERIOD_LENGTH);
       txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -287,11 +286,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should not prolong the will before the last 30 days of subscription', async () => {
-      const sixty_days = 60 * 24 * 3600;
       let isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(2 * ONE_YEAR - sixty_days);
+        await TestUtils.gotoFuture(2 * ONE_YEAR - PERIOD_LENGTH * 2);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       } catch (err) {
           isCaught = true;
@@ -300,9 +298,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should prolong the will', async () => {
-      const fifteen_days = 15 * 24 * 3600;
-
-      await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
+      await TestUtils.gotoFuture(2 * ONE_YEAR - PERIOD_LENGTH / 2);
       txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       const willUpdate = await ewPlatform.wills.call(willId);
       txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
@@ -316,9 +312,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x31113e, 16)).toString(10);
 
     it('should refresh an existing will', async () => {
-      const thirty_days = 30 * 24 * 3600;
-
-      await TestUtils.gotoFuture(thirty_days);
+      await TestUtils.gotoFuture(PERIOD_LENGTH);
       txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -326,9 +320,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should prolong an existing will', async () => {
-      const fifteen_days = 15 * 24 * 3600;
-
-      await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
+      await TestUtils.gotoFuture(2 * ONE_YEAR - PERIOD_LENGTH);
       txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       const willUpdate = await ewPlatform.wills.call(willId);
       txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
@@ -350,11 +342,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should not refresh, after delete the will', async () => {
-      const thirty_days = 30 * 24 * 3600;
       let isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(thirty_days);
+        await TestUtils.gotoFuture(PERIOD_LENGTH);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       } catch (err) {
           isCaught = true;
@@ -363,11 +354,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should not prolong, after delete the will', async () => {
-      const fifteen_days = 15 * 24 * 3600;
       let isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
+        await TestUtils.gotoFuture(2 * ONE_YEAR - PERIOD_LENGTH);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       } catch (err) {
           isCaught = true;
@@ -389,11 +379,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should not refresh, after declined the will', async () => {
-      const thirty_days = 30 * 24 * 3600;
       let isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(thirty_days);
+        await TestUtils.gotoFuture(PERIOD_LENGTH);
         txResult = await ewPlatform.refreshWill(willId, true, { from: deleg });
       } catch (err) {
           isCaught = true;
@@ -402,11 +391,10 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should not prolong, after declined the will', async () => {
-      const fifteen_days = 15 * 24 * 3600;
       let isCaught = false;
 
       try {
-        await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
+        await TestUtils.gotoFuture(2 * ONE_YEAR - PERIOD_LENGTH / 2);
         txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       } catch (err) {
           isCaught = true;
@@ -424,9 +412,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should prolong the will, 14 months later', async () => {
-      const sixty_days = 60 * 24 * 3600;
-
-      await TestUtils.gotoFuture(2 * ONE_YEAR + sixty_days);
+      await TestUtils.gotoFuture(2 * ONE_YEAR + PERIOD_LENGTH * 2);
       txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       const willUpdate = await ewPlatform.wills.call(willId);
       txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
@@ -454,9 +440,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should prolong the will', async () => {
-      const fifteen_days = 15 * 24 * 3600;
-
-      await TestUtils.gotoFuture(2 * ONE_YEAR - fifteen_days);
+      await TestUtils.gotoFuture(2 * ONE_YEAR - PERIOD_LENGTH / 2);
       txResult = await ewPlatform.prolongWill(willId, 2, { from: user });
       const willUpdate = await ewPlatform.wills.call(willId);
       txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
@@ -508,12 +492,11 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should delete the will, further check fund providers and balance users', async () => {
-      //todo: test fails
       const bProvider = await ewEscrow.providers.call(prov);
       const bUser = await ewToken.balanceOf(user);
-      const forty_days = 40 * 24 * 3600;
+      const fortyDays = 40 * 24 * 3600;
 
-      await TestUtils.gotoFuture(forty_days);
+      await TestUtils.gotoFuture(fortyDays);
       txResult = await ewPlatform.deleteWill(willId, { from: user });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
       txEvent.args.willId.should.be.bignumber.equal(willId);
@@ -525,7 +508,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txResult = newBProvider[1] - bProvider[1];
       txResult.should.be.equal(0);
 
-      txResult = await ewToken.balanceOf(user) - bUser;
+      txResult = Number((await ewToken.balanceOf(user)).sub(bUser));
       txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * 10 / 12);
     });
   });
@@ -547,7 +530,6 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     });
 
     it('should claim the will, further check fund providers and balance users', async () => {
-      //todo: test fails
       const bProvider = await ewEscrow.providers.call(prov);
       const bUser = await ewToken.balanceOf(user);
 
@@ -561,7 +543,67 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       const newBProvider = await ewEscrow.providers.call(prov);
 
       txResult = newBProvider[1] - bProvider[1];
-      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * 12 / 24);
+      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * years);
+
+      txResult = await ewToken.balanceOf(user) - bUser;
+      txResult.should.be.equal(0);
+    });
+  });
+
+  describe('#check profit of the provider for future periods', () => {
+    const willId = (new BN(prov.slice(2), 16)).iushln(96).iadd(new BN(0x316dead, 16)).toString(10);
+    const years = 1;
+
+    it('should create and activate the will', async () => {
+      await createActivatedWill(willId, prov, deleg, user, amount, years);
+    });
+
+    it('should prolong the will and collecting money from the user', async () => {
+      const bUser = await ewToken.balanceOf(user);
+      const bPlatform = await ewToken.balanceOf(ewAccount.address);
+      const bEscrow = await ewToken.balanceOf(ewEscrow.address);
+
+      await TestUtils.gotoFuture(ONE_YEAR - PERIOD_LENGTH / 2);
+      txResult = await ewPlatform.prolongWill(willId, years, { from: user });
+      const willUpdate = await ewPlatform.wills.call(willId);
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillProlonged');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+      txEvent.args.validTill.should.be.bignumber.equal(willUpdate[9]);
+
+      txResult = (await ewToken.balanceOf(ewAccount.address)).sub(bPlatform);
+      txResult.should.be.bignumber.equal(PLATFORM_FEE * RATE_TOKEN * years); 
+
+      txResult = (await ewToken.balanceOf(ewEscrow.address)).sub(bEscrow);
+      txResult.should.be.bignumber.equal(PROVIDER_FEE * RATE_TOKEN * years);
+
+      txResult = bUser - await ewToken.balanceOf(user);
+      txResult.should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * RATE_TOKEN * years);
+    });
+
+    it('should apply the will', async () => {
+      txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+      txEvent.args.newState.should.be.bignumber.equal(WillState.Pending);
+    });
+
+    it('should claim the will, further check fund providers and balance users', async () => {
+      const bProvider = await ewEscrow.providers.call(prov);
+      const bUser = await ewToken.balanceOf(user);
+
+      await TestUtils.gotoFuture(ONE_YEAR);
+      txResult = await ewPlatform.claimWill(willId, { from: benf });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+      txEvent.args.newState.should.be.bignumber.equal(WillState.Claimed);
+
+      const newBProvider = await ewEscrow.providers.call(prov);
+
+      txResult = newBProvider[1] - bProvider[1];
+      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * years);
 
       txResult = await ewToken.balanceOf(user) - bUser;
       txResult.should.be.equal(0);
