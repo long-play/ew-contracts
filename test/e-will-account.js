@@ -22,10 +22,6 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
 
   it('should configure the contract', async () => {
     txResult = await ewAccount.setFinance(admin, { from: admin });
-    txResult = await ewAccount.setMinParkingAmount(15, { from: admin });
-
-    const minParkingAmount = await ewAccount.minParkingAmount.call();
-    minParkingAmount.should.be.bignumber.equal(15.0e+18);
   });
 
   it('should get funds', async () => {

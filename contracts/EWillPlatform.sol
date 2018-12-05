@@ -14,19 +14,20 @@ contract EWillPlatform is Ownable {
     enum WillState { None, Created, Activated, Pending, Claimed, Rejected, Deleted }
 
     struct Will {
-        uint256     willId;
-        uint256     storageId;
-        uint256     annualFee;
-        uint256     newFee;
-        uint256     beneficiaryHash;
-        uint256     decryptionKey;
-        address     owner;
-        uint64      updatedAt;
-        address     provider;
-        uint64      validTill;
-        WillState   state;
-        uint8       skippedConfirmations;
-        string      title;
+        uint256     willId;                 // Will ID
+        uint256     storageId;              // Hash of SWARM storage
+        uint256     annualFee;              // Annual subscription fee
+        uint256     newFee;                 // Annual fee to be applied on prolonging
+        uint256     beneficiaryHash;        // Keccak hash of beneficiary's address
+        uint256     decryptionKey;          // Service's key to decrypt the 1st level of encryption of the will
+        address     owner;                  // Address of the owner of the will
+        uint64      updatedAt;              // Date the will was updated last time
+        address     provider;               // Address of the service provider
+        uint64      validTill;              // Date the subscription ends
+        uint16      storageLimit;           // Storage limit of the will, GB
+        WillState   state;                  // Current state of the will
+        uint8       skippedConfirmations;   // Number of non-confirmed checkpoints
+        string      title;                  // Title of the will
     }
 
     // Constants
@@ -121,6 +122,7 @@ contract EWillPlatform is Ownable {
             annualFee: financeWallet.centsToTokens(fee),
             newFee: 0,
             owner: msg.sender,
+            storageLimit: 1,
             state: WillState.Created,
             beneficiaryHash: _beneficiaryHash,
             decryptionKey: 0,
@@ -199,7 +201,7 @@ contract EWillPlatform is Ownable {
         require(will.state == WillState.Activated);
         // allow to release the will if the user skipped more than allowed number of confirmations
         // or if the subscription is ending
-        require(will.skippedConfirmations >= allowedSkippedConfirmations || will.validTill < currentTime() + PERIOD_LENGTH);
+        require(will.skippedConfirmations > allowedSkippedConfirmations || will.validTill < currentTime() + PERIOD_LENGTH);
 
         will.decryptionKey = _decryptionKey;
         will.state = WillState.Pending;

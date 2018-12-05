@@ -18,11 +18,13 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
         uint32                      reward;
         uint64                      startAt;
         uint64                      endAt;
+        uint32                      remain;
     }
 
     // Constants
     string constant public name = 'E-will Marketing';
-    uint256 constant private PERCENT_MULTIPLIER = 1000;
+    uint32 constant private DEFAULT_NUMBER_OF_DISCOUNTS     = 100;
+    uint256 constant private PERCENT_MULTIPLIER             = 1000;
 
     // State Variables
     address public finance;
@@ -86,7 +88,8 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
             discount:   _discount,
             reward:     _reward,
             startAt:    _startAt,
-            endAt:      _endAt
+            endAt:      _endAt,
+            remain:     DEFAULT_NUMBER_OF_DISCOUNTS //todo: make it configurable
         });
 
         Discount storage discountInfo = discounts[_referrer];
@@ -101,7 +104,8 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
             discount:   refCodeDiscount,
             reward:     refCodeReward,
             startAt:    currentTime(),
-            endAt:      currentTime() + uint64(365 days)
+            endAt:      currentTime() + uint64(365 days),
+            remain:     DEFAULT_NUMBER_OF_DISCOUNTS
         });
     }
 
@@ -110,7 +114,7 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
                               address _provider,
                               address _referrer) public view returns (uint256 discount, uint256 refReward) {
         Discount storage discountInfo = discounts[_referrer];
-        if (currentTime() < discountInfo.startAt && currentTime() > discountInfo.endAt) {
+        if (currentTime() < discountInfo.startAt || currentTime() > discountInfo.endAt || discountInfo.remain == 0) {
             return;
         }
         discount = _platformFee.mul(discountInfo.discount).div(PERCENT_MULTIPLIER);
@@ -126,10 +130,16 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
                            uint256 _providerFee,
                            address _provider,
                            address _referrer) public onlyFinance returns (uint256 discount, uint256 refReward) {
+        Discount storage discountInfo = discounts[_referrer];
         (discount, refReward) = referrerDiscount(_platformFee, _providerFee, _provider, _referrer);
+
         if (address(0x0) != _referrer) {
             token.safeTransfer(_referrer, refReward);
         }
+        if (discountInfo.remain > 0) {
+            discountInfo.remain--;
+        }
+
         token.safeTransfer(tx.origin, discount);
     }
 
