@@ -33,7 +33,8 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
     mapping (address => Discount) internal discounts;
     uint32 refCodeDiscount;
     uint32 refCodeReward;
-
+    uint32 numberOfDiscounts;
+    
     // Events
 
     // Modifiers
@@ -76,20 +77,22 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
                          uint64 _endAt,
                          uint32 _discount,
                          uint32 _reward,
+                         uint32 _numberOfDiscounts,
                          address[] _providers,
                          uint32[] _discounts) public onlyMarketer {
         require(_startAt < _endAt);
         require(_discount < PERCENT_MULTIPLIER);
         require(_reward < PERCENT_MULTIPLIER);
+        require(_numberOfDiscounts > 0);
         require(_providers.length == _discounts.length);
         require(_providers.length <= 256);
-
+        numberOfDiscounts = _numberOfDiscounts;
         discounts[_referrer] = Discount({
             discount:   _discount,
             reward:     _reward,
             startAt:    _startAt,
             endAt:      _endAt,
-            remain:     DEFAULT_NUMBER_OF_DISCOUNTS //todo: make it configurable
+            remain:     numberOfDiscounts
         });
 
         Discount storage discountInfo = discounts[_referrer];
@@ -105,7 +108,7 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
             reward:     refCodeReward,
             startAt:    currentTime(),
             endAt:      currentTime() + uint64(365 days),
-            remain:     DEFAULT_NUMBER_OF_DISCOUNTS
+            remain:     numberOfDiscounts
         });
     }
 
