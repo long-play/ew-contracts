@@ -437,4 +437,39 @@ contract('EWillEscrow', function([admin, user, finance, prov, provwl, provupd, d
       txResult[4].should.be.bignumber.equal(ProviderState.Activated);
     });
   });
+
+  describe('#penalize provider', () => {
+    it('should penalize provider', async () => {
+      const amount = 1.0e+16;
+      const bUser = await ewToken.balanceOf(user);
+      const bFinance = await ewToken.balanceOf(finance);
+      const bEscrow = await ewToken.balanceOf(ewEscrow.address);
+
+      txResult = await ewEscrow.penalizeProvider(prov, user, amount, { from: admin });
+      txEvent = TestUtils.findEvent(txResult.logs, 'Fined');
+      txEvent.args.provider.should.be.bignumber.equal(prov);
+      txEvent.args.victim.should.be.bignumber.equal(user);
+      txEvent.args.amount.should.be.bignumber.equal(amount);
+
+      const differenceBalanceUser = await ewToken.balanceOf(user) - bUser;
+      const differenceBalanceFinance = await ewToken.balanceOf(finance) - bFinance;
+      const newbEscrow = await ewToken.balanceOf(ewEscrow.address);
+
+      differenceBalanceUser.should.be.bignumber.equal(amount);
+      differenceBalanceFinance.should.be.bignumber.equal(amount);
+      newbEscrow.should.be.bignumber.equal(bEscrow - differenceBalanceUser - differenceBalanceFinance);
+    });
+
+    it('should penalize provider for a greater amount, than he has in the fund', async () => {
+      const amount = 2.0e+20;
+      let isCaught = false;
+
+      try {
+        await ewEscrow.penalizeProvider(prov, user, amount, { from: admin });
+      } catch(err) {
+          isCaught = true;
+      }
+      isCaught.should.be.equal(true);
+    });
+  });
 });

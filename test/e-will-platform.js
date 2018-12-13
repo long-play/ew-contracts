@@ -30,12 +30,13 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     Deleted: 6
   };
 
-  const ONE_YEAR      = 365 * 24 * 3600; // in seconds
-  const PERIOD_LENGTH = 30 * 24 * 3600;  // one period per year (in seconds)
-  const PLATFORM_FEE  = 1500;            // cents, $15
-  const PROVIDER_FEE  = 2000;            // cents, $20
-  const RATE_TOKEN    = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER    = 1.0e+13;         // weis per cent, 1000 $/Ether
+  const ONE_YEAR        = 365 * 24 * 3600; // in seconds
+  const PERIOD_LENGTH   = 30 * 24 * 3600;  // one period per year (in seconds)
+  const TIME_CORRECTION = 10;              // 10 seconds for period length correction
+  const PLATFORM_FEE    = 1500;            // cents, $15
+  const PROVIDER_FEE    = 2000;            // cents, $20
+  const RATE_TOKEN      = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER      = 1.0e+13;         // weis per cent, 1000 $/Ether
   const benHash = new BN(keccak256((new BN(benf.slice(2), 16)).toBuffer()), 16);
 
   let ewPlatform = null;
@@ -117,7 +118,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.newState.should.be.bignumber.equal(WillState.Created);
 
       const will = await ewPlatform.wills.call(willId);
-      will[12].should.be.equal('Test will for EV');
+      will[13].should.be.equal('Test will for EV');
     });
 
     it('should activate the will', async () => {
@@ -126,6 +127,14 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txEvent.args.willId.should.be.bignumber.equal(willId);
       txEvent.args.owner.should.be.bignumber.equal(user);
       txEvent.args.newState.should.be.bignumber.equal(WillState.Activated);
+    });
+
+    it('should refresh the will', async () => {
+      await TestUtils.gotoFuture(PERIOD_LENGTH + TIME_CORRECTION);
+      txResult = await ewPlatform.refreshWill(willId, false, { from: deleg });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
     });
 
     it('should apply the will', async () => {
@@ -148,7 +157,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       const will = await ewPlatform.wills.call(willId);
       will[0].should.be.bignumber.equal(willId);
       will[5].should.be.bignumber.equal(0xe4c6);
-      will[10].should.be.bignumber.equal(WillState.Claimed);
+      will[11].should.be.bignumber.equal(WillState.Claimed);
     });
   });
 
@@ -200,7 +209,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     it('should to be checked after delete of the will', async () => {
       const will = await ewPlatform.wills.call(willId);
       will[0].should.be.bignumber.equal(willId);
-      will[10].should.be.bignumber.equal(WillState.Deleted);
+      will[11].should.be.bignumber.equal(WillState.Deleted);
     });
   });
 
@@ -273,7 +282,7 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
     it('should to be checked after refresh of the will', async () => {
       const will = await ewPlatform.wills.call(willId);
       will[0].should.be.bignumber.equal(willId);
-      will[10].should.be.bignumber.equal(WillState.Activated);
+      will[11].should.be.bignumber.equal(WillState.Activated);
     });
   });
 
@@ -521,6 +530,14 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       await createActivatedWill(willId, prov, deleg, user, amount, years);
     });
 
+    it('should refresh the will', async () => {
+      await TestUtils.gotoFuture(PERIOD_LENGTH + TIME_CORRECTION);
+      txResult = await ewPlatform.refreshWill(willId, false, { from: deleg });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+    });
+
     it('should apply the will', async () => {
       txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
@@ -542,8 +559,8 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       const newBProvider = await ewEscrow.providers.call(prov);
 
-      txResult = newBProvider[1] - bProvider[1];
-      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * years);
+      txResult = Number(newBProvider[1].sub(bProvider[1]));
+      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * (12 * years - 1) / 12);
 
       txResult = await ewToken.balanceOf(user) - bUser;
       txResult.should.be.equal(0);
@@ -581,6 +598,14 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
       txResult.should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * RATE_TOKEN * years);
     });
 
+    it('should refresh the will', async () => {
+      await TestUtils.gotoFuture(PERIOD_LENGTH);
+      txResult = await ewPlatform.refreshWill(willId, false, { from: deleg });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+    });
+
     it('should apply the will', async () => {
       txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
@@ -602,9 +627,8 @@ contract('EWillPlatform', function([admin, user, prov, benf, deleg]) {
 
       const newBProvider = await ewEscrow.providers.call(prov);
 
-      txResult = newBProvider[1] - bProvider[1];
-      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * years);
-
+      txResult = Number(newBProvider[1].sub(bProvider[1]));
+      txResult.should.be.equal(RATE_TOKEN * PROVIDER_FEE * (12 * years - 1) / 12);
       txResult = await ewToken.balanceOf(user) - bUser;
       txResult.should.be.equal(0);
     });

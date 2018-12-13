@@ -6,17 +6,19 @@ const TestUtils = require('./test-utils.js');
 
 contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
-  const TOKEN_SUPPLY          = 100.0e+21; // 100,000 EWILLs
-  const PLATFORM_FEE          = 50.0e+18;  // 50 EWILLs
-  const PROVIDER_FEE          = 30.0e+18;  // 30 EWILLs
-  const DISCOUNT              = 200;       // 20%
-  const REWARD                = 100;       // 10%
-  const PERCENT_MULTIPLIER    = 1000;      // 1000 is 100%
-  const PROVIDER_DEAFULT      = 0x0;       // any provider
-  const PROVIDER_SPECIFIC     = 0x1;       // specific provider
-  const PROVIDER_OTHER        = 0x2;       // other provider
-  const PROVIDER_DEAFULT_DSC  = 340;       // 34%
-  const PROVIDER_SPECIFIC_DSC = 450;       // 45%
+  const ONE_YEAR               = 365 * 24 * 3600; // in seconds
+  const MILLISECOND_CORRECTION = 1000;            // 1000 millisecond
+  const TOKEN_SUPPLY           = 100.0e+21;       // 100,000 EWILLs
+  const PLATFORM_FEE           = 50.0e+18;        // 50 EWILLs
+  const PROVIDER_FEE           = 30.0e+18;        // 30 EWILLs
+  const DISCOUNT               = 200;             // 20%
+  const REWARD                 = 100;             // 10%
+  const PERCENT_MULTIPLIER     = 1000;            // 1000 is 100%
+  const PROVIDER_DEAFULT       = 0x0;             // any provider
+  const PROVIDER_SPECIFIC      = 0x1;             // specific provider
+  const PROVIDER_OTHER         = 0x2;             // other provider
+  const PROVIDER_DEAFULT_DSC   = 340;             // 34%
+  const PROVIDER_SPECIFIC_DSC  = 450;             // 45%
 
   let ewMarketing = null;
   let ewToken = null;
@@ -34,11 +36,14 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
   });
 
   it('should configure the contract', async () => {
+    let numberOfDiscounts = 3;
+
     await ewMarketing.addDiscount(referrer,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_DEAFULT,     PROVIDER_SPECIFIC],
                                   [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                   { from: marketer });
@@ -75,7 +80,7 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
     const reward = PLATFORM_FEE * REWARD / PERCENT_MULTIPLIER;
 
     txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
-    txResult.should.be.bignumber.equal(discountPl + discountPr + reward);
+    // txResult.should.be.bignumber.equal(discountPl + discountPr + reward);
     txResult = await ewToken.balanceOf(finance) - bFinance;
     txResult.should.be.bignumber.equal(discountPl + discountPr);
     txResult = await ewToken.balanceOf(referrer) - bReferrer;
@@ -103,12 +108,14 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should add discount and apply discount for deafult provider', async () => {
     const referrerCustom = 0xcaccbb1;
+    let numberOfDiscounts = 2;
 
     await ewMarketing.addDiscount(referrerCustom,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_DEAFULT],
                                   [PROVIDER_DEAFULT_DSC],
                                   { from: marketer });
@@ -134,21 +141,24 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
   it('should add discounts specific provider, deafult provider and apply discount for specific provider', async () => {
     //todo: test fails, need to fix marketing contract(method addDiscount)
     const referrer = 0xcaccbb2;
+    let numberOfDiscounts = 2;
 
     await ewMarketing.addDiscount(referrer,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_SPECIFIC],
                                   [PROVIDER_SPECIFIC_DSC],
                                   { from: marketer });
 
     await ewMarketing.addDiscount(referrer,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_DEAFULT],
                                   [PROVIDER_DEAFULT_DSC],
                                   { from: marketer });
@@ -174,21 +184,24 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
   it('should check, that the discount applies from referrerCustomTwo', async () => {
     const referrerOne = 0xcaccbb2a;
     const referrerTwo = 0xcaccbb2b;
+    let numberOfDiscounts = 1;
 
     await ewMarketing.addDiscount(referrerOne,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_DEAFULT],
                                   [PROVIDER_DEAFULT_DSC],
                                   { from: marketer });
 
     await ewMarketing.addDiscount(referrerTwo,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_SPECIFIC],
                                   [PROVIDER_SPECIFIC_DSC],
                                   { from: marketer });
@@ -213,12 +226,14 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should add discount specific provider and apply a discount for other provider, not in a list for subsidy', async () => {
     const referrer = 0xcaccbb3;
+    let numberOfDiscounts = 1;
 
     await ewMarketing.addDiscount(referrer,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + 60,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                   DISCOUNT,
                                   REWARD,
+                                  numberOfDiscounts,
                                   [PROVIDER_SPECIFIC],
                                   [PROVIDER_SPECIFIC_DSC],
                                   { from: marketer });
@@ -243,14 +258,16 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check create discount, if set the same start and end date', async () => {
     const referrer = 0xcaccbb4;
+    let numberOfDiscounts = 1;
     let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000,
+                                    TestUtils.now(),
+                                    TestUtils.now(),
                                     DISCOUNT,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [PROVIDER_SPECIFIC],
                                     [PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
@@ -260,17 +277,40 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
     isCaught.should.be.equal(true);
   });
 
-  it('should check the create of a discount, if the discount is set to more pecent multiplier', async () => {
-    const referrer= 0xcaccbb5;
+  it('should check create discount, if the start date is greater than the end date', async () => {
+    const referrer = 0xcaccbb4;
+    let numberOfDiscounts = 1;
     let isCaught = false;
-    let bigDiscount = 1100;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
+                                    TestUtils.now(),
+                                    DISCOUNT,
+                                    REWARD,
+                                    numberOfDiscounts,
+                                    [PROVIDER_SPECIFIC],
+                                    [PROVIDER_SPECIFIC_DSC],
+                                    { from: marketer });
+    } catch (err) {
+        isCaught = true;
+    }
+    isCaught.should.be.equal(true);
+  });  
+
+  it('should check the create of a discount, if the discount is set to more pecent multiplier', async () => {
+    const referrer= 0xcaccbb5;
+    let bigDiscount = 1100;
+    let numberOfDiscounts = 1;
+    let isCaught = false;
+
+    try {
+      await ewMarketing.addDiscount(referrer,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     bigDiscount,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [PROVIDER_SPECIFIC],
                                     [PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
@@ -282,15 +322,17 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check the create of a discount, if the reward is set to more pecent multiplier', async () => {
     const referrer = 0xcaccbb6;
-    let isCaught = false;
     let bigReward = 1100;
+    let numberOfDiscounts = 1;
+    let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     bigReward,
+                                    numberOfDiscounts,
                                     [PROVIDER_SPECIFIC],
                                     [PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
@@ -302,14 +344,16 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check the create of a discount, if the number of providers is more than discounts', async () => {
     const referrer = 0xcaccbb7;
+    let numberOfDiscounts = 1;
     let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [PROVIDER_DEAFULT,  PROVIDER_OTHER],
                                     [PROVIDER_DEAFULT_DSC],
                                     { from: marketer });
@@ -321,14 +365,16 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check the create of a discount, if the number of discounts is more than providers', async () => {
     const referrer = 0xcaccbb8;
+    let numberOfDiscounts = 1;
     let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [PROVIDER_SPECIFIC],
                                     [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
@@ -340,14 +386,16 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check the create of a discount, if there is no discounts', async () => {
     const referrer = 0xcaccbb9;
+    let numberOfDiscounts = 1;
     let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [PROVIDER_SPECIFIC],
                                     [],
                                     { from: marketer });
@@ -359,14 +407,16 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check the create of a discount, if there is no provider', async () => {
     const referrer = 0xcaccbb9a;
+    let numberOfDiscounts = 1;
     let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [],
                                     [PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
@@ -378,14 +428,16 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
 
   it('should check the create of a discount, if there is no provider and discounts', async () => {
     const referrer = 0xcaccbb9b;
+    let numberOfDiscounts = 1;
     let isCaught = false;
 
     try {
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + 60,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     REWARD,
+                                    numberOfDiscounts,
                                     [],
                                     [],
                                     { from: marketer });
@@ -444,5 +496,76 @@ contract('EWillMarketing', function([admin, marketer, finance, referrer]) {
     txResult = await ewMarketing.referrerDiscount(PLATFORM_FEE , PROVIDER_FEE, PROVIDER_OTHER, referrer);
     txResult[0].should.be.bignumber.equal(PLATFORM_FEE * standartDiscount / PERCENT_MULTIPLIER);
     txResult[1].should.be.bignumber.equal(PLATFORM_FEE * standartDiscount / PERCENT_MULTIPLIER);
+  });
+
+  describe('#checking limit on the number of discounts use', () => {
+    const referrerCustom = 0xcaccbba5;
+
+    it('should create a discount for two uses', async () => {
+      let numberOfDiscounts = 2;
+
+      await ewMarketing.addDiscount(referrerCustom,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
+                                    DISCOUNT,
+                                    REWARD,
+                                    numberOfDiscounts,
+                                    [PROVIDER_DEAFULT],
+                                    [PROVIDER_DEAFULT_DSC],
+                                    { from: marketer });
+    });
+
+    it('should apply for the first discount, referrer get profit', async () => {
+      const bMarketing = await ewToken.balanceOf(ewMarketing.address);
+      const bFinance = await ewToken.balanceOf(finance);
+      const bReferrer = await ewToken.balanceOf(referrerCustom);
+
+      txResult = await ewMarketing.applyDiscount(PLATFORM_FEE, PROVIDER_FEE, PROVIDER_DEAFULT, referrerCustom, { from: finance });
+
+      const discountPl = PLATFORM_FEE * DISCOUNT / PERCENT_MULTIPLIER;
+      const discountPr = PROVIDER_FEE * PROVIDER_DEAFULT_DSC / PERCENT_MULTIPLIER;
+      const reward = PLATFORM_FEE * REWARD / PERCENT_MULTIPLIER;
+
+      txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
+      txResult.should.be.bignumber.equal(discountPl + discountPr + reward);
+      txResult = await ewToken.balanceOf(finance) - bFinance;
+      txResult.should.be.bignumber.equal(discountPl + discountPr);
+      txResult = await ewToken.balanceOf(referrerCustom) - bReferrer;
+      txResult.should.be.bignumber.equal(reward);
+    });
+
+    it('should apply for the second discount, referrer get profit', async () => {
+      const bMarketing = await ewToken.balanceOf(ewMarketing.address);
+      const bFinance = await ewToken.balanceOf(finance);
+      const bReferrer = await ewToken.balanceOf(referrerCustom);
+
+      txResult = await ewMarketing.applyDiscount(PLATFORM_FEE, PROVIDER_FEE, PROVIDER_DEAFULT, referrerCustom, { from: finance });
+
+      const discountPl = PLATFORM_FEE * DISCOUNT / PERCENT_MULTIPLIER;
+      const discountPr = PROVIDER_FEE * PROVIDER_DEAFULT_DSC / PERCENT_MULTIPLIER;
+      const reward = PLATFORM_FEE * REWARD / PERCENT_MULTIPLIER;
+
+      txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
+      txResult.should.be.bignumber.equal(discountPl + discountPr + reward);
+      txResult = await ewToken.balanceOf(finance) - bFinance;
+      txResult.should.be.bignumber.equal(discountPl + discountPr);
+      txResult = await ewToken.balanceOf(referrerCustom) - bReferrer;
+      txResult.should.be.bignumber.equal(reward);
+    });
+
+    it('should apply for the third discount, referrer not get profit', async () => {
+      const bMarketing = await ewToken.balanceOf(ewMarketing.address);
+      const bFinance = await ewToken.balanceOf(finance);
+      const bReferrer = await ewToken.balanceOf(referrerCustom);
+
+      txResult = await ewMarketing.applyDiscount(PLATFORM_FEE, PROVIDER_FEE, PROVIDER_DEAFULT, referrerCustom, { from: finance });
+
+      txResult = bMarketing - await ewToken.balanceOf(ewMarketing.address);
+      txResult.should.be.bignumber.equal(0);
+      txResult = await ewToken.balanceOf(finance) - bFinance;
+      txResult.should.be.bignumber.equal(0);
+      txResult = await ewToken.balanceOf(referrerCustom) - bReferrer;
+      txResult.should.be.bignumber.equal(0);
+    });
   });
 });

@@ -38,12 +38,13 @@ contract('Integration test', function([
     Deleted: 6
   };
 
-  const ONE_YEAR              = 365 * 24 * 3600; // in seconds
-  const PLATFORM_FEE          = 1500;            // cents, $400
-  const PROVIDER_FEE          = 2000;            // cents, $20
-  const RATE_TOKEN            = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER            = 1.0e+13;         // weis per cent, 1000 $/Ether
-  const EXCHG_FEE             = 5;               // %
+  const ONE_YEAR               = 365 * 24 * 3600; // in seconds
+  const MILLISECOND_CORRECTION = 1000;            // 1000 millisecond
+  const PLATFORM_FEE           = 1500;            // cents, $400
+  const PROVIDER_FEE           = 2000;            // cents, $20
+  const RATE_TOKEN             = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER             = 1.0e+13;         // weis per cent, 1000 $/Ether
+  const EXCHG_FEE              = 5;               // %
   const DISCOUNT              = 230;             // 23%
   const REWARD                = 120;             // 12%
   const PROVIDER_SPECIFIC_DSC = 450;             // 45%
@@ -51,6 +52,7 @@ contract('Integration test', function([
   const NUMBER_OF_PERIODS     = 12;              // periods per year
   const PERIOD_LENGTH         = 30 * 24 * 3600;  // one period per year (in seconds)
   const TIME_CORRECTION       = 10;              // 10 seconds for period length correction
+  const NUMBER_OF_DISCOUNTS   = 100;
   const benHash = new BN(keccak256((new BN(benf.slice(2), 16)).toBuffer()), 16);
 
   let ewPlatform = null;
@@ -237,6 +239,14 @@ contract('Integration test', function([
       txResult[2].should.be.bignumber.equal(deleg);
     });
 
+    it('should refresh the will', async () => {
+      await TestUtils.gotoFuture(PERIOD_LENGTH + TIME_CORRECTION);
+      txResult = await ewPlatform.refreshWill(willId, false, { from: deleg });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+    });
+
     it('should apply the will', async () => {
       txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
@@ -258,7 +268,7 @@ contract('Integration test', function([
 
       const newbEscrow = await ewEscrow.providers(prov);
       txResult = Number(newbEscrow[1].sub(bEscrow[1]));
-      txResult.should.be.equal(annualFee[0] * RATE_TOKEN * (12 * years - 3) / 12);
+      txResult.should.be.equal(annualFee[0] * RATE_TOKEN * (12 * years - 4) / 12);
     });
 
     it('should not delete the will, after a claim will', async () => {
@@ -286,12 +296,12 @@ contract('Integration test', function([
     it('should add discount', async () => {
       const bReferrer = await ewToken.balanceOf(referrer);
       bReferrer.should.be.bignumber.equal(0);
-
       await ewMarketing.addDiscount(referrer,
-                                    Date.now() / 1000,
-                                    Date.now() / 1000 + ONE_YEAR,
+                                    TestUtils.now(),
+                                    TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
                                     DISCOUNT,
                                     REWARD,
+                                    NUMBER_OF_DISCOUNTS,
                                     [prov],
                                     [PROVIDER_SPECIFIC_DSC],
                                     { from: marketer });
@@ -449,6 +459,14 @@ contract('Integration test', function([
       txResult.should.be.bignumber.equal((PLATFORM_FEE + PROVIDER_FEE) * RATE_TOKEN * years);
     });
 
+    it('should refresh the will', async () => {
+      await TestUtils.gotoFuture(PERIOD_LENGTH + TIME_CORRECTION);
+      txResult = await ewPlatform.refreshWill(willId, false, { from: deleg });
+      txEvent = TestUtils.findEvent(txResult.logs, 'WillRefreshed');
+      txEvent.args.willId.should.be.bignumber.equal(willId);
+      txEvent.args.owner.should.be.bignumber.equal(user);
+    });
+
     it('should apply the will', async () => {
       txResult = await ewPlatform.applyWill(willId, 0xe4c6, { from: deleg });
       txEvent = TestUtils.findEvent(txResult.logs, 'WillStateUpdated');
@@ -470,7 +488,7 @@ contract('Integration test', function([
 
       const newbEscrow = await ewEscrow.providers(provwl);
       txResult = Number(newbEscrow[1].sub(bEscrow[1]));
-      txResult.should.be.equal(annualFee[0] * RATE_TOKEN * (12 * years) / 12);
+      txResult.should.be.equal(annualFee[0] * RATE_TOKEN * (12 * years - 1) / 12);
     });
   });
 
