@@ -23,7 +23,6 @@ contract EWillMarketing is EWillMarketingIf, Ownable {
 
     // Constants
     string constant public name = 'E-will Marketing';
-    uint32 constant private DEFAULT_NUMBER_OF_DISCOUNTS     = 100;
     uint256 constant private PERCENT_MULTIPLIER             = 1000;
 
     // State Variables
