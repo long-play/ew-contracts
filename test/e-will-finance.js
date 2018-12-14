@@ -27,25 +27,26 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     Declined: 5
   };
 
-  const ONE_YEAR              = 365 * 24 * 3600; // in seconds
-  const TOKEN_SUPPLY          = 100.0e+21;       // 100,000 EWILLs
-  const PLATFORM_FEE          = 1500;            // cents, $15
-  const PROVIDER_FEE          = 2000;            // cents, $20
-  const RATE_TOKEN            = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER            = 1.0e+13;         // weis per cent, 1000 $/Ether
-  const EXCHG_FEE             = 5;               // %
-  const DISCOUNT              = 230;             // 23%
-  const REWARD                = 120;             // 12%
-  const PROVIDER_DEAFULT      = 0x0;             // any provider
-  const PROVIDER_DEAFULT_DSC  = 340;             // 34%
-  const PROVIDER_SPECIFIC_DSC = 450;             // 45%
+  const ONE_YEAR               = 365 * 24 * 3600 * 1000; // in millisecond
+  const TOKEN_SUPPLY           = 100.0e+21;              // 100,000 EWILLs
+  const PLATFORM_FEE           = 1500;                   // cents, $15
+  const PROVIDER_FEE           = 2000;                   // cents, $20
+  const RATE_TOKEN             = 1.0e+14;                // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER             = 1.0e+13;                // weis per cent, 1000 $/Ether
+  const EXCHG_FEE              = 5;                      // %
+  const DISCOUNT               = 230;                    // 23%
+  const REWARD                 = 120;                    // 12%
+  const PROVIDER_DEAFULT       = 0x0;                    // any provider
+  const PROVIDER_DEAFULT_DSC   = 340;                    // 34%
+  const PROVIDER_SPECIFIC_DSC  = 450;                    // 45%
+  const NUMBER_OF_DISCOUNTS    = 100;
 
   let ewFinance = null;
   let ewAccount = null;
   let ewEscrow = null;
   let ewToken = null;
   let ewMarketing = null;
-  let txResult, txEvent;
+  let txResult;
 
   it('should have a correct name', async () => {
     ewToken = await EWillToken.new(TOKEN_SUPPLY);
@@ -74,10 +75,11 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     await ewToken.addMerchant(ewAccount.address);
     await ewToken.addMerchant(ewFinance.address);
     await ewMarketing.addDiscount(benf,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + ONE_YEAR,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR,
                                   DISCOUNT,
                                   REWARD,
+                                  NUMBER_OF_DISCOUNTS,
                                   [PROVIDER_DEAFULT,     prov],
                                   [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                   { from: admin });
@@ -255,10 +257,11 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     const referrer = 0xcaccbb1;
 
     await ewMarketing.addDiscount(referrer,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + ONE_YEAR,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR,
                                   DISCOUNT,
                                   0,
+                                  NUMBER_OF_DISCOUNTS,
                                   [PROVIDER_DEAFULT,     prov],
                                   [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                   { from: admin });
@@ -274,10 +277,11 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     const referrer = 0xcaccbb2;
 
     await ewMarketing.addDiscount(referrer,
-                                  Date.now() / 1000,
-                                  Date.now() / 1000 + ONE_YEAR,
+                                  TestUtils.now(),
+                                  TestUtils.now() + ONE_YEAR,
                                   0,
                                   REWARD,
+                                  NUMBER_OF_DISCOUNTS,
                                   [PROVIDER_DEAFULT,     prov],
                                   [PROVIDER_DEAFULT_DSC, PROVIDER_SPECIFIC_DSC],
                                   { from: admin });

@@ -37,6 +37,7 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
     event Banned(address provider);
     event UpdatedDelegate(address provider, address delegate);
     event Withdrew(address provider, uint256 amount);
+    event Fined(address provider, address victim, uint256 amount);
 
     // Modifiers
     modifier onlyFinance {
@@ -65,20 +66,6 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
 
         providers[_provider].state = _state;
         emit Activated(_provider, _state);
-    }
-
-    function banProvider(address _provider) public onlyOwner {
-        require(isActiveState(providers[_provider].state) == true);
-
-        providers[_provider].state = ProviderState.Banned;
-        emit Banned(_provider);
-    }
-
-    function unbanProvider(address _provider) public onlyOwner {
-        require(providers[_provider].state == ProviderState.Banned);
-
-        providers[_provider].state = ProviderState.Activated;
-        emit Activated(_provider, ProviderState.Activated);
     }
 
     function updateProviderInfo(uint256 _annualFee, uint256 _newInfoId) public {
@@ -141,6 +128,29 @@ contract EWillEscrow is EWillEscrowIf, Ownable {
         token.safeTransfer(msg.sender, _amount);
 
         emit Withdrew(msg.sender, _amount);
+    }
+
+    // Arbitrage
+    //todo: replace owner with arbitrer
+    function penalizeProvider(address _provider, address _victim, uint256 _fine) public onlyOwner {
+        providers[_provider].fund = providers[_provider].fund.sub(2 * _fine);
+        token.safeTransfer(_victim, _fine);
+        token.safeTransfer(financeContract, _fine); //todo: is it right?
+        emit Fined(_provider, _victim, _fine);
+    }
+
+    function banProvider(address _provider) public onlyOwner {
+        require(isActiveState(providers[_provider].state) == true);
+
+        providers[_provider].state = ProviderState.Banned;
+        emit Banned(_provider);
+    }
+
+    function unbanProvider(address _provider) public onlyOwner {
+        require(providers[_provider].state == ProviderState.Banned);
+
+        providers[_provider].state = ProviderState.Activated;
+        emit Activated(_provider, ProviderState.Activated);
     }
 
     // EWillEscrowIf

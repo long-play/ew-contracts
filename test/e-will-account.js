@@ -22,10 +22,6 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
 
   it('should configure the contract', async () => {
     txResult = await ewAccount.setFinance(admin, { from: admin });
-    txResult = await ewAccount.setMinParkingAmount(15, { from: admin });
-
-    const minParkingAmount = await ewAccount.minParkingAmount.call();
-    minParkingAmount.should.be.bignumber.equal(15.0e+18);
   });
 
   it('should get funds', async () => {
@@ -39,18 +35,6 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
     txEvent.args.amount.should.be.bignumber.equal(amount);
   });
 
-  it('should not pay more than a half of the balance for operational expenses', async () => {
-    let isCaught = false;
-    const amount = 40.0e+18;
-    try {
-      txResult = await ewAccount.payOperationalExpenses(amount, { from: admin });
-      txEvent = TestUtils.findEvent(txResult.logs, 'Withdrew');
-    } catch (err) {
-      isCaught = true;
-    }
-    isCaught.should.be.equal(true);
-  });
-
   it('should pay for operational expenses', async () => {
     const amount = 30.0e+18;
     txResult = await ewAccount.payOperationalExpenses(amount, { from: admin });
@@ -58,9 +42,9 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
     txEvent.args.amount.should.be.bignumber.equal(amount);
   });
 
-  it('should not pay oftener than a once per 30 days for operational expenses', async () => {
+  it('should not pay operating expenses if not enough money', async () => {
     let isCaught = false;
-    const amount = 10.0e+18;
+    const amount = 50.0e+18;
     try {
       txResult = await ewAccount.payOperationalExpenses(amount, { from: admin });
       txEvent = TestUtils.findEvent(txResult.logs, 'Withdrew');

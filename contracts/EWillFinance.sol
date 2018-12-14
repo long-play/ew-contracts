@@ -107,6 +107,7 @@ contract EWillFinance is EWillFinanceIf, Ownable {
 
     // Public Financing
     function platformFee(uint64 _years) public view returns (uint256) {
+        //todo: decrease annual fee on inscresing subscription length
         return annualPlatformFee * _years;
     }
 
