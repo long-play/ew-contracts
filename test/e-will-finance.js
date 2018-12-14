@@ -27,19 +27,18 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     Declined: 5
   };
 
-  const ONE_YEAR               = 365 * 24 * 3600; // in seconds
-  const MILLISECOND_CORRECTION = 1000;            // 1000 millisecond
-  const TOKEN_SUPPLY           = 100.0e+21;       // 100,000 EWILLs
-  const PLATFORM_FEE           = 1500;            // cents, $15
-  const PROVIDER_FEE           = 2000;            // cents, $20
-  const RATE_TOKEN             = 1.0e+14;         // tokenweis per cent, 100 $/EWILL
-  const RATE_ETHER             = 1.0e+13;         // weis per cent, 1000 $/Ether
-  const EXCHG_FEE              = 5;               // %
-  const DISCOUNT               = 230;             // 23%
-  const REWARD                 = 120;             // 12%
-  const PROVIDER_DEAFULT       = 0x0;             // any provider
-  const PROVIDER_DEAFULT_DSC   = 340;             // 34%
-  const PROVIDER_SPECIFIC_DSC  = 450;             // 45%
+  const ONE_YEAR               = 365 * 24 * 3600 * 1000; // in millisecond
+  const TOKEN_SUPPLY           = 100.0e+21;              // 100,000 EWILLs
+  const PLATFORM_FEE           = 1500;                   // cents, $15
+  const PROVIDER_FEE           = 2000;                   // cents, $20
+  const RATE_TOKEN             = 1.0e+14;                // tokenweis per cent, 100 $/EWILL
+  const RATE_ETHER             = 1.0e+13;                // weis per cent, 1000 $/Ether
+  const EXCHG_FEE              = 5;                      // %
+  const DISCOUNT               = 230;                    // 23%
+  const REWARD                 = 120;                    // 12%
+  const PROVIDER_DEAFULT       = 0x0;                    // any provider
+  const PROVIDER_DEAFULT_DSC   = 340;                    // 34%
+  const PROVIDER_SPECIFIC_DSC  = 450;                    // 45%
   const NUMBER_OF_DISCOUNTS    = 100;
 
   let ewFinance = null;
@@ -77,7 +76,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
     await ewToken.addMerchant(ewFinance.address);
     await ewMarketing.addDiscount(benf,
                                   TestUtils.now(),
-                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
+                                  TestUtils.now() + ONE_YEAR,
                                   DISCOUNT,
                                   REWARD,
                                   NUMBER_OF_DISCOUNTS,
@@ -259,7 +258,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
 
     await ewMarketing.addDiscount(referrer,
                                   TestUtils.now(),
-                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
+                                  TestUtils.now() + ONE_YEAR,
                                   DISCOUNT,
                                   0,
                                   NUMBER_OF_DISCOUNTS,
@@ -279,7 +278,7 @@ contract('EWillFinance', function([admin, user, prov, benf, plat, deleg]) {
 
     await ewMarketing.addDiscount(referrer,
                                   TestUtils.now(),
-                                  TestUtils.now() + ONE_YEAR * MILLISECOND_CORRECTION,
+                                  TestUtils.now() + ONE_YEAR,
                                   0,
                                   REWARD,
                                   NUMBER_OF_DISCOUNTS,

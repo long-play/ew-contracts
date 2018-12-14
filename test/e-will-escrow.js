@@ -460,7 +460,7 @@ contract('EWillEscrow', function([admin, user, finance, prov, provwl, provupd, d
       newbEscrow.should.be.bignumber.equal(bEscrow - differenceBalanceUser - differenceBalanceFinance);
     });
 
-    it('should penalize provider for a greater amount, than he has in the fund', async () => {
+    it('should not penalize provider for a greater amount, than he has in the fund', async () => {
       const amount = 2.0e+20;
       let isCaught = false;
 

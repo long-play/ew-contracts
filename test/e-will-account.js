@@ -35,13 +35,6 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
     txEvent.args.amount.should.be.bignumber.equal(amount);
   });
 
-  it('should pay more than a half of the balance for operational expenses', async () => {
-    const amount = 40.0e+18;
-    txResult = await ewAccount.payOperationalExpenses(amount, { from: admin });
-    txEvent = TestUtils.findEvent(txResult.logs, 'Withdrew');
-    txEvent.args.amount.should.be.bignumber.equal(amount);
-  });
-
   it('should pay for operational expenses', async () => {
     const amount = 30.0e+18;
     txResult = await ewAccount.payOperationalExpenses(amount, { from: admin });
@@ -51,7 +44,7 @@ contract('EWillAccount', function([admin, acc, holder1, holder2]) {
 
   it('should not pay operating expenses if not enough money', async () => {
     let isCaught = false;
-    const amount = 10.0e+18;
+    const amount = 50.0e+18;
     try {
       txResult = await ewAccount.payOperationalExpenses(amount, { from: admin });
       txEvent = TestUtils.findEvent(txResult.logs, 'Withdrew');
